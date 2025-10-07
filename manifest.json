@@ -10,11 +10,11 @@
     "*://*.netflix.com/*"
   ],
   "action": {
-    "default_popup": "public/popup.html",
+    "default_popup": "popup.html",
     "default_icon": {
-      "16": "public/icons/icon16.png",
-      "48": "public/icons/icon48.png",
-      "128": "public/icons/icon128.png"
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     }
   },
   "content_scripts": [
@@ -23,14 +23,14 @@
         "*://*.netflix.com/*"
       ],
       "js": [
-        "dist/content.js"
+        "content.js"
       ],
       "run_at": "document_idle"
     }
   ],
   "icons": {
-    "16": "public/icons/icon16.png",
-    "48": "public/icons/icon48.png",
-    "128": "public/icons/icon128.png"
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }

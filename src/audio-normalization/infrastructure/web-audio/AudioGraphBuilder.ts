@@ -1,0 +1,182 @@
+import { GainNodeWrapper } from './nodes/GainNodeWrapper';
+import { CompressorNodeWrapper } from './nodes/CompressorNodeWrapper';
+import { LimiterNodeWrapper } from './nodes/LimiterNodeWrapper';
+import { AnalyserNodeWrapper } from './nodes/AnalyserNodeWrapper';
+import { IAudioProcessingStrategy } from './strategies/IAudioProcessingStrategy';
+import { ActiveProcessingStrategy } from './strategies/ActiveProcessingStrategy';
+import { BypassProcessingStrategy } from './strategies/BypassProcessingStrategy';
+import { ILogger } from '../../../shared/infrastructure/logger/ILogger';
+
+/**
+ * Audio Graph Builder
+ * Constrói e gerencia o grafo de nós da Web Audio API
+ *
+ * Responsabilidades:
+ * - Criar todos os nós necessários
+ * - Conectar/desconectar nós usando estratégias
+ * - Gerenciar estado do AudioContext
+ */
+export class AudioGraphBuilder {
+  private audioContext: AudioContext | null = null;
+  private sourceNode: MediaElementAudioSourceNode | null = null;
+  private gainNodeWrapper: GainNodeWrapper | null = null;
+  private compressorNodeWrapper: CompressorNodeWrapper | null = null;
+  private limiterNodeWrapper: LimiterNodeWrapper | null = null;
+  private analyserNodeWrapper: AnalyserNodeWrapper | null = null;
+
+  private activeStrategy: ActiveProcessingStrategy = new ActiveProcessingStrategy();
+  private bypassStrategy: BypassProcessingStrategy = new BypassProcessingStrategy();
+
+  constructor(private readonly logger: ILogger) {}
+
+  /**
+   * Inicializa o grafo de áudio com um elemento de vídeo
+   */
+  public initialize(mediaElement: HTMLVideoElement): void {
+    if (this.audioContext) {
+      this.logger.warn('Audio graph already initialized, cleaning up first');
+      this.cleanup();
+    }
+
+    try {
+      // Cria AudioContext
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      this.audioContext = new AudioContextClass();
+
+      // Cria source node
+      this.sourceNode = this.audioContext.createMediaElementSource(mediaElement);
+
+      // Cria nós de processamento
+      const gainNode = this.audioContext.createGain();
+      this.gainNodeWrapper = new GainNodeWrapper(gainNode);
+
+      const compressorNode = this.audioContext.createDynamicsCompressor();
+      this.compressorNodeWrapper = new CompressorNodeWrapper(compressorNode);
+
+      const limiterNode = this.audioContext.createDynamicsCompressor();
+      this.limiterNodeWrapper = new LimiterNodeWrapper(limiterNode);
+
+      const analyserNode = this.audioContext.createAnalyser();
+      this.analyserNodeWrapper = new AnalyserNodeWrapper(analyserNode);
+
+      this.logger.info('Audio graph initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize audio graph', error);
+      throw error;
+    }
+  }
+
+  private currentMode: 'ACTIVE' | 'BYPASS' | null = null;
+
+  /**
+   * Conecta os nós usando a estratégia especificada
+   * IMPORTANTE: Só reconecta se o modo mudou (evita reconexões desnecessárias)
+   */
+  public connect(isActive: boolean): void {
+    if (!this.isInitialized()) {
+      throw new Error('Audio graph not initialized');
+    }
+
+    const newMode = isActive ? 'ACTIVE' : 'BYPASS';
+
+    // Se já está no modo correto, não faz nada
+    if (this.currentMode === newMode) {
+      this.logger.debug(`Already in ${newMode} mode, skipping reconnection`);
+      return;
+    }
+
+    const strategy: IAudioProcessingStrategy = isActive
+      ? this.activeStrategy
+      : this.bypassStrategy;
+
+    // Desconecta tudo primeiro
+    this.disconnect();
+
+    // Conecta usando a estratégia
+    strategy.connect(
+      this.sourceNode!,
+      this.gainNodeWrapper!.getNativeNode(),
+      this.compressorNodeWrapper!.getNativeNode(),
+      this.limiterNodeWrapper!.getNativeNode(),
+      this.analyserNodeWrapper!.getNativeNode(),
+      this.audioContext!.destination
+    );
+
+    this.currentMode = newMode;
+    this.logger.info(`Audio graph connected in ${newMode} mode`);
+  }
+
+  /**
+   * Desconecta todos os nós
+   */
+  private disconnect(): void {
+    if (!this.isInitialized()) return;
+
+    try {
+      this.sourceNode!.disconnect();
+      this.gainNodeWrapper!.disconnect();
+      this.compressorNodeWrapper!.disconnect();
+      this.limiterNodeWrapper!.disconnect();
+      this.analyserNodeWrapper!.disconnect();
+    } catch {
+      // Ignora erros de desconexão
+    }
+  }
+
+  /**
+   * Resume o AudioContext se estiver suspenso
+   */
+  public async resume(): Promise<void> {
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      await this.audioContext.resume();
+      this.logger.info('AudioContext resumed');
+    }
+  }
+
+  /**
+   * Limpa todos os recursos
+   */
+  public cleanup(): void {
+    this.disconnect();
+
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+
+    this.sourceNode = null;
+    this.gainNodeWrapper = null;
+    this.compressorNodeWrapper = null;
+    this.limiterNodeWrapper = null;
+    this.analyserNodeWrapper = null;
+    this.currentMode = null;
+
+    this.logger.info('Audio graph cleaned up');
+  }
+
+  // Getters
+  public getGainNode(): GainNodeWrapper {
+    if (!this.gainNodeWrapper) {
+      throw new Error('Gain node not initialized');
+    }
+    return this.gainNodeWrapper;
+  }
+
+  public getAnalyserNode(): AnalyserNodeWrapper {
+    if (!this.analyserNodeWrapper) {
+      throw new Error('Analyser node not initialized');
+    }
+    return this.analyserNodeWrapper;
+  }
+
+  public getAudioContext(): AudioContext {
+    if (!this.audioContext) {
+      throw new Error('AudioContext not initialized');
+    }
+    return this.audioContext;
+  }
+
+  public isInitialized(): boolean {
+    return this.audioContext !== null && this.sourceNode !== null;
+  }
+}
