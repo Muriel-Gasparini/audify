@@ -1,0 +1,16 @@
+{
+  "name": "netfrix",
+  "version": "1.0.0",
+  "description": "Netflix Audio Normalizer & Auto Skip - Extensão com normalização de áudio e pulo automático de abertura",
+  "scripts": {
+    "build": "tsc && node build.js",
+    "watch": "tsc --watch & node build.js --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.3"
+  },
+  "type": "module"
+}

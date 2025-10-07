@@ -1,22 +1,36 @@
 {
   "manifest_version": 3,
-  "name": "Netflix Audio Normalizer & Auto Skip",
+  "name": "Netfrix",
   "version": "1.0.0",
   "description": "Normaliza o áudio para picos altos de som e pula automaticamente a abertura no Netflix",
-  "permissions": [],
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "*://*.netflix.com/*"
   ],
+  "action": {
+    "default_popup": "public/popup.html",
+    "default_icon": {
+      "16": "public/icons/icon16.png",
+      "48": "public/icons/icon48.png",
+      "128": "public/icons/icon128.png"
+    }
+  },
   "content_scripts": [
     {
-      "matches": ["*://*.netflix.com/*"],
-      "js": ["content.js"],
+      "matches": [
+        "*://*.netflix.com/*"
+      ],
+      "js": [
+        "dist/content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "public/icons/icon16.png",
+    "48": "public/icons/icon48.png",
+    "128": "public/icons/icon128.png"
   }
 }
