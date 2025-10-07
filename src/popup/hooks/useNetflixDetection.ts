@@ -3,23 +3,23 @@ import { PopupMessagingService } from '../services/PopupMessagingService';
 
 /**
  * Hook: useNetflixDetection
- * Detecta se a aba ativa está no Netflix
+ * Detecta se a aba ativa está acessível para a extensão
  */
 export function useNetflixDetection(messagingService: PopupMessagingService) {
-  const [isOnNetflix, setIsOnNetflix] = useState(false);
+  const [isOnNetflix, setIsOnNetflix] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkNetflix();
+    checkTabAccess();
   }, []);
 
-  const checkNetflix = async () => {
+  const checkTabAccess = async () => {
     try {
       setLoading(true);
-      const onNetflix = await messagingService.isOnNetflix();
-      setIsOnNetflix(onNetflix);
+      const hasAccess = await messagingService.canAccessTab();
+      setIsOnNetflix(hasAccess);
     } catch (err) {
-      console.error('Error checking Netflix:', err);
+      console.error('Error checking tab access:', err);
       setIsOnNetflix(false);
     } finally {
       setLoading(false);
@@ -29,6 +29,6 @@ export function useNetflixDetection(messagingService: PopupMessagingService) {
   return {
     isOnNetflix,
     loading,
-    recheckNetflix: checkNetflix,
+    recheckNetflix: checkTabAccess,
   };
 }

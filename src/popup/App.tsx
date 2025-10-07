@@ -2,7 +2,7 @@ import React from 'react';
 import { useExtension } from './contexts/ExtensionContext';
 import { useAudioConfig } from './hooks/useAudioConfig';
 import { useAudioState } from './hooks/useAudioState';
-import { useNetflixDetection } from './hooks/useNetflixDetection';
+import { useSiteInfo } from './hooks/useSiteInfo';
 import { Header } from './components/Header/Header';
 import { StatusDisplay } from './components/Status/StatusDisplay';
 import { TargetLevelControl } from './components/Controls/TargetLevelControl';
@@ -19,13 +19,13 @@ export function App() {
   const { messagingService } = useExtension();
 
   // Hooks
-  const { isOnNetflix, loading: netflixLoading } = useNetflixDetection(messagingService);
+  const { siteInfo, canAccessTab, loading: siteInfoLoading } = useSiteInfo(messagingService);
   const { config, loading: configLoading, updateTargetLevel, updateMaxGain, updateMinGain } =
     useAudioConfig(messagingService);
   const { state } = useAudioState(messagingService, config?.isActive ?? false);
 
   // Loading state
-  if (netflixLoading || configLoading || !config) {
+  if (siteInfoLoading || configLoading || !config) {
     return (
       <div className="container">
         <Header />
@@ -34,16 +34,29 @@ export function App() {
     );
   }
 
+  // Se não pode acessar a aba (chrome://, edge://, etc.)
+  if (!canAccessTab) {
+    return (
+      <div className="container">
+        <Header />
+        <div className="error">Esta extensão não funciona em páginas do navegador.</div>
+      </div>
+    );
+  }
+
   const hasVideo = state?.hasVideo ?? false;
   const isActive = config.isActive;
   const gain = state?.gain ?? 1.0;
 
-  const handleToggleClick = async () => {
-    if (!isOnNetflix) {
-      messagingService.openNetflix();
-      return;
-    }
+  console.log('[App] Render state:', {
+    hasVideo,
+    isActive,
+    gain,
+    rawState: state,
+    rawConfig: config,
+  });
 
+  const handleToggleClick = async () => {
     if (hasVideo) {
       await messagingService.toggleNormalizer();
       // Força reload da página para atualizar UI
@@ -51,13 +64,13 @@ export function App() {
     }
   };
 
-  const controlsDisabled = !isOnNetflix || !hasVideo;
+  const controlsDisabled = !hasVideo;
 
   return (
     <div className="container">
-      <Header />
+      <Header integrationName={siteInfo?.integrationName} />
 
-      <StatusDisplay isActive={isActive} hasVideo={hasVideo} gain={gain} isOnNetflix={isOnNetflix} />
+      <StatusDisplay isActive={isActive} hasVideo={hasVideo} gain={gain} />
 
       <div className="controls">
         <TargetLevelControl
@@ -72,7 +85,6 @@ export function App() {
       </div>
 
       <ToggleButton
-        isOnNetflix={isOnNetflix}
         hasVideo={hasVideo}
         isActive={isActive}
         onClick={handleToggleClick}

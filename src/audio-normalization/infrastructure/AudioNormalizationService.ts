@@ -24,6 +24,7 @@ export class AudioNormalizationService {
   private animationFrameId: number | null = null;
   private currentVideo: HTMLVideoElement | null = null;
   private seekingListener: (() => void) | null = null;
+  private videoRemovalObserver: MutationObserver | null = null;
 
   // Throttling do loop de normalização
   private lastNormalizationTime: number = 0;
@@ -42,20 +43,73 @@ export class AudioNormalizationService {
    * Conecta o serviço a um elemento de vídeo
    */
   public attachToVideo(video: HTMLVideoElement): void {
+    // Check if this is the exact same video element reference AND adapter is initialized
     if (this.currentVideo === video && this.adapter.isInitialized()) {
       this.logger.info('Already attached to this video');
+      console.log('[AudioNormalizationService] attachToVideo - Already attached, skipping');
       return;
     }
 
+    // Log detailed attachment information
     this.logger.info('Attaching to video element');
-    this.cleanup();
+    console.log('[AudioNormalizationService] attachToVideo - NEW ATTACHMENT:', {
+      videoSrc: video.src || video.currentSrc,
+      videoReadyState: video.readyState,
+      videoConnected: video.isConnected,
+      previousVideoExists: this.currentVideo !== null,
+      previousVideoConnected: this.currentVideo?.isConnected ?? false,
+      sameVideoElement: this.currentVideo === video,
+      adapterWasInitialized: this.adapter.isInitialized()
+    });
+
+    // IMPORTANT: Only cleanup if we're replacing with a different video
+    // This prevents destroying the audio context for the same video
+    if (this.currentVideo !== video) {
+      console.log('[AudioNormalizationService] attachToVideo - Cleaning up previous video');
+      this.cleanup();
+    }
 
     this.currentVideo = video;
-    this.adapter.attachToVideo(video);
+
+    try {
+      this.adapter.attachToVideo(video);
+      console.log('[AudioNormalizationService] attachToVideo - After attachment, adapter initialized:', this.adapter.isInitialized());
+    } catch (error) {
+      console.error('[AudioNormalizationService] FAILED to attach adapter to video:', error);
+      this.logger.error('Failed to attach adapter to video', error);
+      // Reset currentVideo since attachment failed
+      this.currentVideo = null;
+      throw error;
+    }
 
     // Setup listener para seeking (pulo no vídeo)
     this.seekingListener = this.handleSeeking.bind(this);
     video.addEventListener('seeking', this.seekingListener);
+
+    // Add DOM removal listener to detect when video is removed
+    this.videoRemovalObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.removedNodes) {
+          if (node === video || (node instanceof Element && node.contains(video))) {
+            console.log('[AudioNormalizationService] VIDEO REMOVED FROM DOM!', {
+              videoSrc: video.src || video.currentSrc,
+              wasActive: this.isActive
+            });
+            this.logger.warn('Video element removed from DOM');
+            if (this.videoRemovalObserver) {
+              this.videoRemovalObserver.disconnect();
+              this.videoRemovalObserver = null;
+            }
+            break;
+          }
+        }
+      }
+    });
+
+    // Monitor video's parent for removal
+    if (video.parentElement) {
+      this.videoRemovalObserver.observe(video.parentElement, { childList: true });
+    }
 
     if (this.isActive) {
       this.start();
@@ -125,7 +179,27 @@ export class AudioNormalizationService {
    * Verifica se tem vídeo conectado
    */
   public hasVideoAttached(): boolean {
-    return this.currentVideo !== null && this.adapter.isInitialized();
+    const hasVideo = this.currentVideo !== null;
+    const isAdapterInit = this.adapter.isInitialized();
+    const isVideoInDOM = this.currentVideo?.isConnected ?? false;
+    const result = hasVideo && isAdapterInit && isVideoInDOM;
+
+    console.log('[AudioNormalizationService] hasVideoAttached() check:', {
+      currentVideo: this.currentVideo ? 'EXISTS' : 'NULL',
+      videoInDOM: isVideoInDOM,
+      adapterInitialized: isAdapterInit,
+      result: result
+    });
+
+    // If video exists but is not in DOM anymore, cleanup and return false
+    if (hasVideo && !isVideoInDOM) {
+      console.warn('[AudioNormalizationService] Video element detached from DOM - cleaning up');
+      this.logger.warn('Video element no longer in DOM, cleaning up');
+      this.cleanup();
+      return false;
+    }
+
+    return result;
   }
 
   /**
@@ -230,11 +304,22 @@ export class AudioNormalizationService {
    * Limpa todos os recursos
    */
   public cleanup(): void {
+    console.log('[AudioNormalizationService] cleanup() called', {
+      hadVideo: this.currentVideo !== null,
+      wasActive: this.isActive,
+      stackTrace: new Error().stack
+    });
+
     this.stop();
 
     if (this.currentVideo && this.seekingListener) {
       this.currentVideo.removeEventListener('seeking', this.seekingListener);
       this.seekingListener = null;
+    }
+
+    if (this.videoRemovalObserver) {
+      this.videoRemovalObserver.disconnect();
+      this.videoRemovalObserver = null;
     }
 
     this.adapter.cleanup();

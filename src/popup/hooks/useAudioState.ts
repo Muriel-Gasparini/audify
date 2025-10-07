@@ -17,28 +17,31 @@ export function useAudioState(
     // Carrega estado inicial
     loadState();
 
-    // Se ativo, faz polling para atualizar gain
-    if (isActive) {
-      intervalRef.current = window.setInterval(() => {
-        loadState();
-      }, pollingInterval);
-    }
+    // SEMPRE faz polling, não apenas quando ativo
+    // Isso garante que o UI atualize quando:
+    // 1. Vídeo é descoberto após o popup abrir
+    // 2. Normalizer é ativado automaticamente quando vídeo é encontrado
+    // 3. Estado muda por qualquer motivo externo
+    intervalRef.current = window.setInterval(() => {
+      loadState();
+    }, pollingInterval);
 
     return () => {
       if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isActive, pollingInterval]);
+  }, [pollingInterval]);
 
   const loadState = async () => {
     try {
       const loadedState = await messagingService.getState();
+      console.log('[useAudioState] Loaded state from content script:', loadedState);
       setState(loadedState);
     } catch (err) {
       // Ignora erros silenciosamente no polling
       // Mantém o estado anterior se houver erro
-      console.debug('Error loading state:', err);
+      console.debug('[useAudioState] Error loading state:', err);
     }
   };
 

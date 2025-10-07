@@ -35,16 +35,21 @@ export class AudioGraphBuilder {
   public initialize(mediaElement: HTMLVideoElement): void {
     if (this.audioContext) {
       this.logger.warn('Audio graph already initialized, cleaning up first');
+      console.log('[AudioGraphBuilder] Already initialized, cleaning up');
       this.cleanup();
     }
 
     try {
+      console.log('[AudioGraphBuilder] Starting initialization...');
+
       // Cria AudioContext
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       this.audioContext = new AudioContextClass();
+      console.log('[AudioGraphBuilder] AudioContext created, state:', this.audioContext.state);
 
       // Cria source node
       this.sourceNode = this.audioContext.createMediaElementSource(mediaElement);
+      console.log('[AudioGraphBuilder] MediaElementSource created');
 
       // Cria nós de processamento
       const gainNode = this.audioContext.createGain();
@@ -59,8 +64,10 @@ export class AudioGraphBuilder {
       const analyserNode = this.audioContext.createAnalyser();
       this.analyserNodeWrapper = new AnalyserNodeWrapper(analyserNode);
 
+      console.log('[AudioGraphBuilder] All nodes created successfully');
       this.logger.info('Audio graph initialized successfully');
     } catch (error) {
+      console.error('[AudioGraphBuilder] CRITICAL ERROR during initialization:', error);
       this.logger.error('Failed to initialize audio graph', error);
       throw error;
     }
@@ -177,6 +184,12 @@ export class AudioGraphBuilder {
   }
 
   public isInitialized(): boolean {
-    return this.audioContext !== null && this.sourceNode !== null;
+    const result = this.audioContext !== null && this.sourceNode !== null;
+    console.log('[AudioGraphBuilder] isInitialized() called:', {
+      audioContext: this.audioContext ? 'EXISTS' : 'NULL',
+      sourceNode: this.sourceNode ? 'EXISTS' : 'NULL',
+      result: result
+    });
+    return result;
   }
 }

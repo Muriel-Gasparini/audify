@@ -16,11 +16,14 @@ export class GetAudioStateUseCase {
     const isActive = this.service.isNormalizerActive();
     const hasVideo = this.service.hasVideoAttached();
 
-    return {
+    const state = {
       gain: gain.getValue(),
       volume: 0, // Volume é medido no loop de normalização
       isActive,
       hasVideo,
     };
+
+    console.log('[GetAudioStateUseCase] Returning state:', state);
+    return state;
   }
 }

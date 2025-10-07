@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Netfrix",
-  "version": "1.0.0",
-  "description": "Normaliza o áudio para picos altos de som e pula automaticamente a abertura no Netflix",
+  "version": "2.0.0",
+  "description": "Normaliza o áudio de vídeos em qualquer site e pula automaticamente aberturas no Netflix",
   "permissions": [
     "storage"
   ],
   "host_permissions": [
-    "*://*.netflix.com/*"
+    "<all_urls>"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -20,12 +20,13 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.netflix.com/*"
+        "<all_urls>"
       ],
       "js": [
         "content.js"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "icons": {

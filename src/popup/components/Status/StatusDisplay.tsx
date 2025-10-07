@@ -4,32 +4,27 @@ interface StatusDisplayProps {
   isActive: boolean;
   hasVideo: boolean;
   gain: number;
-  isOnNetflix: boolean;
 }
 
 /**
  * Componente: StatusDisplay
  * Exibe status atual do normalizador
  */
-export function StatusDisplay({ isActive, hasVideo, gain, isOnNetflix }: StatusDisplayProps) {
+export function StatusDisplay({ isActive, hasVideo, gain }: StatusDisplayProps) {
   const getStatusText = () => {
-    if (!isOnNetflix) {
-      return '📺 Não está no Netflix';
-    }
-
     if (!hasVideo) {
-      return '🔍 Buscando vídeo...';
+      return 'Buscando video...';
     }
 
     if (isActive) {
-      return '🎧 Ativo';
+      return 'Ativo';
     }
 
-    return '⏸️ Inativo';
+    return 'Inativo';
   };
 
   const getGainText = () => {
-    if (!isOnNetflix || !hasVideo) {
+    if (!hasVideo) {
       return 'Gain: --';
     }
 
