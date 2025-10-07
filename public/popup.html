@@ -93,6 +93,21 @@
       transform: scale(1.2);
     }
 
+    input[type="range"]:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    input[type="range"]:disabled::-webkit-slider-thumb {
+      cursor: not-allowed;
+      background: #666;
+    }
+
+    input[type="range"]:disabled::-moz-range-thumb {
+      cursor: not-allowed;
+      background: #666;
+    }
+
     .toggle-section {
       display: flex;
       flex-direction: column;
@@ -121,6 +136,11 @@
 
     .toggle-btn:active {
       transform: translateY(0);
+    }
+
+    .toggle-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
     }
 
     .status {
@@ -163,15 +183,23 @@
       <span>Nível Alvo</span>
       <span class="control-value" id="targetValue">0.10</span>
     </div>
-    <input type="range" id="targetSlider" min="0.02" max="0.3" step="0.01" value="0.1">
+    <input type="range" id="targetSlider" min="0.01" max="0.3" step="0.01" value="0.1">
   </div>
 
   <div class="control-group">
     <div class="control-label">
-      <span>Suavização</span>
-      <span class="control-value" id="smoothingValue">0.05</span>
+      <span>Ganho Máximo</span>
+      <span class="control-value" id="maxGainValue">8.0x</span>
     </div>
-    <input type="range" id="smoothingSlider" min="0.01" max="0.3" step="0.01" value="0.05">
+    <input type="range" id="maxGainSlider" min="1.0" max="16.0" step="0.5" value="8.0">
+  </div>
+
+  <div class="control-group">
+    <div class="control-label">
+      <span>Ganho Mínimo</span>
+      <span class="control-value" id="minGainValue">0.1x</span>
+    </div>
+    <input type="range" id="minGainSlider" min="0.01" max="1.0" step="0.01" value="0.1">
   </div>
 
   <div class="toggle-section">

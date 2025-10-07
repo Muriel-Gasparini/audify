@@ -4,8 +4,8 @@
 
 export interface NormalizerConfig {
   targetLevel: number;
-  smoothing: number;
   maxGain: number;
+  minGain: number;
   isActive: boolean;
 }
 
@@ -13,6 +13,7 @@ export interface AudioState {
   gain: number;
   volume: number;
   isActive: boolean;
+  hasVideo: boolean;
 }
 
 // ============================================================================
@@ -54,7 +55,7 @@ export const STORAGE_KEYS = {
 
 export const DEFAULT_CONFIG: NormalizerConfig = {
   targetLevel: 0.1,
-  smoothing: 0.05,
   maxGain: 8.0,
+  minGain: 0.1,
   isActive: false,
 };
