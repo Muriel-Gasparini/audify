@@ -1,14 +1,9 @@
 import { InvalidGainException } from '../exceptions/InvalidGainException';
 
 /**
- * Value Object: GainValue
- * Representa um valor de ganho de áudio válido
- *
- * Regras de negócio:
- * - Deve ser um número finito
- * - Deve estar entre 0.01 e 16.0
- * - Imutável após criação
- */
+   * Audio gain value object (0.
+   * @throws {InvalidGainException}
+   */
 export class GainValue {
   private static readonly MIN_VALUE = 0.01;
   private static readonly MAX_VALUE = 16.0;
@@ -20,18 +15,13 @@ export class GainValue {
   }
 
   /**
-   * Cria um GainValue a partir de um número
-   * @throws InvalidGainException se o valor for inválido
+   * @throws {InvalidGainException}
    */
   public static create(value: number): GainValue {
     this.validate(value);
     return new GainValue(value);
   }
 
-  /**
-   * Cria um GainValue com validação silenciosa (clamp)
-   * Não lança exceção, ajusta o valor para o range válido
-   */
   public static createSafe(value: number): GainValue {
     if (!isFinite(value) || value <= 0) {
       return new GainValue(this.MIN_VALUE);

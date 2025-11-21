@@ -1,14 +1,9 @@
 import { InvalidTargetLevelException } from '../exceptions/InvalidTargetLevelException';
 
 /**
- * Value Object: TargetLevel
- * Representa o nível alvo de volume para normalização
- *
- * Regras de negócio:
- * - Deve ser um número finito
- * - Deve estar entre 0.01 e 0.3 (1% a 30% do volume máximo)
- * - Imutável após criação
- */
+   * Target volume level value object (0.
+   * @throws {InvalidTargetLevelException}
+   */
 export class TargetLevel {
   private static readonly MIN_VALUE = 0.01;
   private static readonly MAX_VALUE = 0.3;
@@ -20,17 +15,13 @@ export class TargetLevel {
   }
 
   /**
-   * Cria um TargetLevel a partir de um número
-   * @throws InvalidTargetLevelException se o valor for inválido
+   * @throws {InvalidTargetLevelException}
    */
   public static create(value: number): TargetLevel {
     this.validate(value);
     return new TargetLevel(value);
   }
 
-  /**
-   * Cria um TargetLevel com validação silenciosa (clamp)
-   */
   public static createSafe(value: number): TargetLevel {
     if (!isFinite(value) || value <= 0) {
       return new TargetLevel(this.MIN_VALUE);

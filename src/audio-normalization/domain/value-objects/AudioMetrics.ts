@@ -2,11 +2,8 @@ import { VolumeLevel } from '../../../shared/domain/value-objects/VolumeLevel';
 import { GainValue } from '../../../shared/domain/value-objects/GainValue';
 
 /**
- * Value Object: AudioMetrics
- * Representa métricas medidas do áudio em um dado momento
- *
- * Usado para decisões de normalização
- */
+   * Audio metrics snapshot for normalization decisions.
+   */
 export class AudioMetrics {
   constructor(
     public readonly volume: VolumeLevel,
@@ -18,16 +15,10 @@ export class AudioMetrics {
     return this.volume.isSilence();
   }
 
-  /**
-   * Verifica se o volume está alto demais (acima do alvo)
-   */
   public isVolumeHigh(targetLevel: VolumeLevel): boolean {
     return this.volume.isAbove(targetLevel);
   }
 
-  /**
-   * Verifica se o volume está baixo demais (abaixo do alvo)
-   */
   public isVolumeLow(targetLevel: VolumeLevel): boolean {
     return this.volume.isBelow(targetLevel);
   }
