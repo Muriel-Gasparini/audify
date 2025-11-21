@@ -1,8 +1,6 @@
 import { VolumeLevel } from '../../../shared/domain/value-objects/VolumeLevel';
+import { AudioProcessingConstants } from '../constants/AudioProcessingConstants';
 
-/**
-   * Audio volume calculation algorithms.
-   */
 export class NormalizationAlgorithm {
   public static calculateVolume(timeDomainData: Float32Array): VolumeLevel {
     let sumOfSquares = 0;
@@ -19,8 +17,8 @@ export class NormalizationAlgorithm {
 
     const rms = Math.sqrt(sumOfSquares / timeDomainData.length);
 
-    if (peak > rms * 1.5) {
-      const volumeValue = peak * 0.7;
+    if (peak > rms * AudioProcessingConstants.PEAK_TO_RMS_THRESHOLD) {
+      const volumeValue = peak * AudioProcessingConstants.PEAK_VOLUME_MULTIPLIER;
       return VolumeLevel.create(volumeValue);
     }
 
