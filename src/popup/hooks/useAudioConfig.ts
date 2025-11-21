@@ -2,15 +2,13 @@ import { useState, useEffect } from 'react';
 import { PopupMessagingService, AudioConfig } from '../services/PopupMessagingService';
 
 /**
- * Hook: useAudioConfig
- * Gerencia estado e operações da configuração de áudio
- */
+   * Audio configuration state management hook.
+   */
 export function useAudioConfig(messagingService: PopupMessagingService) {
   const [config, setConfig] = useState<AudioConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Carrega configuração inicial
   useEffect(() => {
     loadConfig();
   }, []);

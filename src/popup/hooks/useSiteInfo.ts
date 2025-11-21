@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { PopupMessagingService, SiteInfo } from '../services/PopupMessagingService';
 
 /**
- * Hook: useSiteInfo
- * Obtém informações sobre a integração específica do site atual
- */
+   * Site-specific integration information hook.
+   */
 export function useSiteInfo(messagingService: PopupMessagingService) {
   const [siteInfo, setSiteInfo] = useState<SiteInfo | null>(null);
   const [canAccessTab, setCanAccessTab] = useState(true);
@@ -18,7 +17,6 @@ export function useSiteInfo(messagingService: PopupMessagingService) {
     try {
       setLoading(true);
 
-      // Verifica se pode acessar a aba
       const hasAccess = await messagingService.canAccessTab();
       setCanAccessTab(hasAccess);
 
@@ -27,7 +25,6 @@ export function useSiteInfo(messagingService: PopupMessagingService) {
         return;
       }
 
-      // Obtém informações sobre integração do site
       const info = await messagingService.getSiteInfo();
       setSiteInfo(info);
     } catch (err) {

@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { PopupMessagingService } from '../services/PopupMessagingService';
 
 /**
- * Hook: useNetflixDetection
- * Detecta se a aba ativa está acessível para a extensão
- */
+   * Detects if active tab is accessible to extension.
+   */
 export function useNetflixDetection(messagingService: PopupMessagingService) {
   const [isOnNetflix, setIsOnNetflix] = useState(true);
   const [loading, setLoading] = useState(true);

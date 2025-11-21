@@ -1,7 +1,6 @@
 /**
- * Popup Messaging Service
- * Serviço para comunicação entre popup e content script
- */
+   * Popup to content script messaging service with retry logic.
+   */
 
 export interface AudioState {
   gain: number;
@@ -26,9 +25,6 @@ export class PopupMessagingService {
   private static readonly MAX_RETRIES = 3;
   private static readonly RETRY_DELAY_MS = 100;
 
-  /**
-   * Verifica se a aba ativa está acessível para a extensão
-   */
   public async canAccessTab(): Promise<boolean> {
     return new Promise((resolve) => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -37,7 +33,6 @@ export class PopupMessagingService {
           resolve(false);
           return;
         }
-        // Verifica se não é uma página protegida (chrome://, edge://, etc)
         const isRestrictedUrl = activeTab.url.startsWith('chrome://') ||
                                 activeTab.url.startsWith('edge://') ||
                                 activeTab.url.startsWith('about:');
@@ -46,11 +41,6 @@ export class PopupMessagingService {
     });
   }
 
-  /**
-   * Envia mensagem para a aba ativa com retry logic
-   * IMPORTANTE: Envia para TODOS os frames (all_frames: true no manifest)
-   * porque o content script pode estar em um iframe
-   */
   private async sendMessageToActiveTab<T>(message: any, retryCount = 0): Promise<T> {
     return new Promise((resolve, reject) => {
       chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
@@ -60,23 +50,19 @@ export class PopupMessagingService {
           return;
         }
 
-        // Envia para TODOS os frames, não apenas o frame principal
-        // Isso é necessário porque o content script pode estar em um iframe
         chrome.tabs.sendMessage(
           activeTab.id,
           message,
-          { frameId: undefined }, // undefined = todos os frames
+          { frameId: undefined },
           async (response: T) => {
             const lastError = chrome.runtime.lastError;
 
             if (lastError) {
-              // "Receiving end does not exist" significa que o content script ainda não carregou
               const isConnectionError = lastError.message?.includes('Receiving end does not exist');
 
               if (isConnectionError && retryCount < PopupMessagingService.MAX_RETRIES) {
                 console.log(`[PopupMessaging] Content script not ready, retrying... (${retryCount + 1}/${PopupMessagingService.MAX_RETRIES})`);
 
-                // Aguarda um pouco e tenta novamente
                 await this.delay(PopupMessagingService.RETRY_DELAY_MS * (retryCount + 1));
 
                 try {
@@ -86,7 +72,6 @@ export class PopupMessagingService {
                   reject(error);
                 }
               } else {
-                // Erro diferente ou excedeu tentativas
                 console.error('[PopupMessaging] Failed to send message:', lastError.message);
                 reject(new Error(lastError.message || 'Failed to communicate with content script'));
               }
@@ -99,16 +84,10 @@ export class PopupMessagingService {
     });
   }
 
-  /**
-   * Helper para adicionar delay
-   */
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  /**
-   * Obtém a configuração atual
-   */
   public async getConfig(): Promise<AudioConfig> {
     const response = await this.sendMessageToActiveTab<{ config: AudioConfig }>({
       type: 'GET_CONFIG',
@@ -116,9 +95,6 @@ export class PopupMessagingService {
     return response.config;
   }
 
-  /**
-   * Atualiza a configuração
-   */
   public async updateConfig(partialConfig: Partial<AudioConfig>): Promise<void> {
     await this.sendMessageToActiveTab<{ success: boolean }>({
       type: 'SET_CONFIG',
@@ -126,9 +102,6 @@ export class PopupMessagingService {
     });
   }
 
-  /**
-   * Obtém o estado atual do normalizador
-   */
   public async getState(): Promise<AudioState> {
     console.log('[PopupMessagingService] Sending GET_STATE message...');
     const response = await this.sendMessageToActiveTab<{ state: AudioState }>({
@@ -138,18 +111,12 @@ export class PopupMessagingService {
     return response.state;
   }
 
-  /**
-   * Toggle (ativa/desativa) o normalizador
-   */
   public async toggleNormalizer(): Promise<void> {
     await this.sendMessageToActiveTab<{ success: boolean }>({
       type: 'TOGGLE_NORMALIZER',
     });
   }
 
-  /**
-   * Obtém informações sobre integração específica do site
-   */
   public async getSiteInfo(): Promise<SiteInfo> {
     const response = await this.sendMessageToActiveTab<{ siteInfo: SiteInfo }>({
       type: 'GET_SITE_INFO',
