@@ -1,13 +1,8 @@
 import { ILogger } from '../../shared/infrastructure/logger/ILogger';
 
 /**
- * Netflix DOM Adapter
- * Adapter para elementos específicos do Netflix
- *
- * Responsabilidades:
- * - Encontrar botões de skip específicos do Netflix
- * - Encapsular seletores CSS do Netflix
- */
+   * Netflix-specific DOM adapter for skip buttons.
+   */
 export class NetflixDOMAdapter {
   private static readonly SKIP_INTRO_SELECTOR = '[data-uia="player-skip-intro"]';
   private static readonly SKIP_RECAP_SELECTOR = '[data-uia="player-skip-recap"]';
@@ -16,9 +11,6 @@ export class NetflixDOMAdapter {
 
   constructor(private readonly logger: ILogger) {}
 
-  /**
-   * Encontra o botão de pular abertura
-   */
   public findSkipIntroButton(): HTMLElement | null {
     const button = document.querySelector(NetflixDOMAdapter.SKIP_INTRO_SELECTOR);
 
@@ -29,9 +21,6 @@ export class NetflixDOMAdapter {
     return null;
   }
 
-  /**
-   * Encontra o botão de pular recap
-   */
   public findSkipRecapButton(): HTMLElement | null {
     const button = document.querySelector(NetflixDOMAdapter.SKIP_RECAP_SELECTOR);
 
@@ -42,9 +31,6 @@ export class NetflixDOMAdapter {
     return null;
   }
 
-  /**
-   * Encontra o botão de pular créditos
-   */
   public findSkipCreditsButton(): HTMLElement | null {
     const button = document.querySelector(NetflixDOMAdapter.SKIP_CREDITS_SELECTOR);
 
@@ -55,9 +41,6 @@ export class NetflixDOMAdapter {
     return null;
   }
 
-  /**
-   * Encontra o botão de próximo episódio
-   */
   public findNextEpisodeButton(): HTMLElement | null {
     const button = document.querySelector(NetflixDOMAdapter.NEXT_EPISODE_SELECTOR);
 
@@ -68,9 +51,6 @@ export class NetflixDOMAdapter {
     return null;
   }
 
-  /**
-   * Clica em um botão se existir
-   */
   public clickButton(button: HTMLElement): void {
     button.click();
     this.logger.info('Button clicked', { selector: button.getAttribute('data-uia') });

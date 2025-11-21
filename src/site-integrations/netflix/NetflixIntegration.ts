@@ -5,13 +5,8 @@ import { NetflixDOMAdapter } from './NetflixDOMAdapter';
 import { ILogger } from '../../shared/infrastructure/logger/ILogger';
 
 /**
- * Netflix Integration
- * Implementação de funcionalidades específicas do Netflix
- *
- * Responsabilidades:
- * - Auto-skip de intros, recaps e créditos
- * - Gerenciar serviços específicos do Netflix
- */
+   * Netflix-specific site integration for auto-skip features.
+   */
 export class NetflixIntegration implements ISiteIntegration {
   private autoSkipService: AutoSkipService;
   private domAdapter: NetflixDOMAdapter;
@@ -42,8 +37,6 @@ export class NetflixIntegration implements ISiteIntegration {
   }
 
   public onVideoDetected(video: GenericVideo): void {
-    // Netflix-specific logic quando vídeo é detectado
-    // Por enquanto, apenas log
     this.logger.debug('Netflix integration: video detected', {
       isInIframe: video.isInIframe(),
       src: video.getSrc(),
@@ -64,9 +57,6 @@ export class NetflixIntegration implements ISiteIntegration {
     return this.active;
   }
 
-  /**
-   * Obtém o serviço de auto-skip (útil para testes)
-   */
   public getAutoSkipService(): AutoSkipService {
     return this.autoSkipService;
   }
