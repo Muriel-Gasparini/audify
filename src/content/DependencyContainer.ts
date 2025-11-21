@@ -3,8 +3,9 @@ import { ILogger } from '../shared/infrastructure/logger/ILogger';
 import { ChromeStorageConfigRepository } from '../shared/infrastructure/storage/ChromeStorageConfigRepository';
 import { IConfigRepository } from '../shared/infrastructure/storage/IConfigRepository';
 import { DomainEventPublisher } from '../shared/domain/events/DomainEventPublisher';
-import { AudioNormalizationService } from '../audio-normalization/infrastructure/AudioNormalizationService';
-import { AudioConfig } from '../audio-normalization/domain/value-objects/AudioConfig';
+import { AudioNormalizationFacade } from '../audio-normalization/infrastructure/services/AudioNormalizationFacade';
+import { EventPublisherService } from '../audio-normalization/infrastructure/services/EventPublisherService';
+import { IAudioNormalizationService } from '../audio-normalization/application/ports/IAudioNormalizationService';
 import { ActivateNormalizerUseCase } from '../audio-normalization/application/use-cases/ActivateNormalizerUseCase';
 import { DeactivateNormalizerUseCase } from '../audio-normalization/application/use-cases/DeactivateNormalizerUseCase';
 import { UpdateAudioConfigUseCase } from '../audio-normalization/application/use-cases/UpdateAudioConfigUseCase';
@@ -37,7 +38,7 @@ export class DependencyContainer {
 
   private siteIntegrationRegistry!: SiteIntegrationRegistry;
 
-  private audioNormalizationService!: AudioNormalizationService;
+  private audioNormalizationService!: IAudioNormalizationService;
 
   private activateNormalizerUseCase!: ActivateNormalizerUseCase;
   private deactivateNormalizerUseCase!: DeactivateNormalizerUseCase;
@@ -52,11 +53,6 @@ export class DependencyContainer {
     this.eventPublisher = DomainEventPublisher.getInstance();
 
     const config = await this.configRepository.load();
-    const audioConfig = AudioConfig.fromPrimitives(
-      config.targetLevel,
-      config.maxGain,
-      config.minGain
-    );
 
     this.genericDOMAdapter = new GenericDOMAdapter(this.logger);
     this.videoDiscoveryService = new VideoDiscoveryService(
@@ -65,10 +61,12 @@ export class DependencyContainer {
     );
     this.corsBypassService = new CORSBypassService(this.logger);
 
-    this.audioNormalizationService = new AudioNormalizationService(
-      audioConfig,
+    const eventPublisherService = new EventPublisherService(this.eventPublisher);
+
+    this.audioNormalizationService = new AudioNormalizationFacade(
+      config,
       this.logger,
-      this.eventPublisher
+      eventPublisherService
     );
 
     this.activateNormalizerUseCase = new ActivateNormalizerUseCase(
@@ -102,7 +100,7 @@ export class DependencyContainer {
 
     this.messageBus.register(
       'UPDATE_CONFIG',
-      new UpdateConfigHandler(this.updateAudioConfigUseCase, this.configRepository)
+      new UpdateConfigHandler(this.updateAudioConfigUseCase)
     );
 
     this.messageBus.register(
@@ -139,7 +137,7 @@ export class DependencyContainer {
     return this.logger;
   }
 
-  public getAudioNormalizationService(): AudioNormalizationService {
+  public getAudioNormalizationService(): IAudioNormalizationService {
     return this.audioNormalizationService;
   }
 
