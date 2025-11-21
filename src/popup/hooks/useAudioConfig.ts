@@ -21,7 +21,6 @@ export function useAudioConfig(messagingService: PopupMessagingService) {
       setConfig(loadedConfig);
     } catch (err) {
       setError('Erro ao carregar configuração');
-      console.error('Error loading config:', err);
     } finally {
       setLoading(false);
     }
@@ -33,7 +32,6 @@ export function useAudioConfig(messagingService: PopupMessagingService) {
       setConfig((prev) => (prev ? { ...prev, targetLevel: value } : null));
     } catch (err) {
       setError('Erro ao atualizar target level');
-      console.error('Error updating target level:', err);
     }
   };
 
@@ -43,7 +41,6 @@ export function useAudioConfig(messagingService: PopupMessagingService) {
       setConfig((prev) => (prev ? { ...prev, maxGain: value } : null));
     } catch (err) {
       setError('Erro ao atualizar max gain');
-      console.error('Error updating max gain:', err);
     }
   };
 
@@ -53,7 +50,6 @@ export function useAudioConfig(messagingService: PopupMessagingService) {
       setConfig((prev) => (prev ? { ...prev, minGain: value } : null));
     } catch (err) {
       setError('Erro ao atualizar min gain');
-      console.error('Error updating min gain:', err);
     }
   };
 

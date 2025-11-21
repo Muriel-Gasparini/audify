@@ -29,10 +29,8 @@ export function useAudioState(
   const loadState = async () => {
     try {
       const loadedState = await messagingService.getState();
-      console.log('[useAudioState] Loaded state from content script:', loadedState);
       setState(loadedState);
     } catch (err) {
-      console.debug('[useAudioState] Error loading state:', err);
     }
   };
 

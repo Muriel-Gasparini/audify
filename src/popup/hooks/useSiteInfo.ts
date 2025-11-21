@@ -28,7 +28,6 @@ export function useSiteInfo(messagingService: PopupMessagingService) {
       const info = await messagingService.getSiteInfo();
       setSiteInfo(info);
     } catch (err) {
-      console.error('Error loading site info:', err);
       setSiteInfo(null);
       setCanAccessTab(false);
     } finally {

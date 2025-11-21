@@ -18,7 +18,6 @@ export function useNetflixDetection(messagingService: PopupMessagingService) {
       const hasAccess = await messagingService.canAccessTab();
       setIsOnNetflix(hasAccess);
     } catch (err) {
-      console.error('Error checking tab access:', err);
       setIsOnNetflix(false);
     } finally {
       setLoading(false);
