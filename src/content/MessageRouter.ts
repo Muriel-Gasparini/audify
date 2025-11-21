@@ -7,15 +7,8 @@ import { GetSiteInfoCommand } from '../shared/infrastructure/messaging/commands/
 import { ILogger } from '../shared/infrastructure/logger/ILogger';
 
 /**
- * Message Router
- * Roteia mensagens do Chrome Runtime para o Message Bus
- *
- * Responsabilidades:
- * - Escutar mensagens do chrome.runtime
- * - Converter mensagens para Commands
- * - Despachar via Message Bus
- * - Enviar respostas
- */
+   * Message Router.
+   */
 export class MessageRouter {
   private listener: ((message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => boolean) | null = null;
 
@@ -25,9 +18,14 @@ export class MessageRouter {
   ) {}
 
   /**
-   * Inicia escuta de mensagens
+   * Starts escuta de mensagens.
    */
   public listen(): void {
+    if (!this.isExtensionContextValid()) {
+      this.logger.error('Cannot register message listener - extension context invalidated');
+      return;
+    }
+
     const isTopFrame = window.self === window.top;
     const frameInfo = isTopFrame ? 'TOP FRAME' : 'IFRAME';
 
@@ -40,9 +38,6 @@ export class MessageRouter {
         url: sender.url
       });
 
-      // CRITICAL: Handle async operations properly to avoid "Receiving end does not exist" error
-      // Chrome requires that we handle the promise and call sendResponse within the promise chain
-      // Using .then() ensures sendResponse is called in a trackable promise context
       this.handleMessage(message)
         .then((response) => {
           this.logger.info(`[${frameInfo}] Sending response for ${message?.type}:`, response);
@@ -53,7 +48,7 @@ export class MessageRouter {
           sendResponse({ success: false, error: String(error) });
         });
 
-      return true; // Mantém canal aberto para resposta assíncrona
+      return true;
     };
 
     chrome.runtime.onMessage.addListener(this.listener);
@@ -62,20 +57,24 @@ export class MessageRouter {
   }
 
   /**
-   * Para a escuta de mensagens
+   * Stops a escuta de mensagens.
    */
   public stopListening(): void {
     if (this.listener) {
-      chrome.runtime.onMessage.removeListener(this.listener);
+      try {
+        if (this.isExtensionContextValid()) {
+          chrome.runtime.onMessage.removeListener(this.listener);
+        }
+      } catch (error) {
+        this.logger.warn('Failed to remove message listener (extension context may be invalid)', error);
+      }
       this.listener = null;
       this.logger.info('Message router stopped listening');
     }
   }
 
   /**
-   * Processa uma mensagem
-   * IMPORTANT: Returns the response object instead of calling sendResponse directly
-   * This allows the caller to handle sendResponse in a promise chain that Chrome can track
+   * Processes uma mensagem.
    */
   private async handleMessage(message: any): Promise<any> {
     const startTime = performance.now();
@@ -95,7 +94,6 @@ export class MessageRouter {
     const elapsed = (performance.now() - startTime).toFixed(2);
     this.logger.info(`[MessageRouter] Command ${command.type} handled successfully in ${elapsed}ms`);
 
-    // Formato de resposta baseado no tipo de comando
     let response: any;
     if (command.type === 'GET_CONFIG') {
       response = { config: result };
@@ -113,7 +111,7 @@ export class MessageRouter {
   }
 
   /**
-   * Converte mensagem do Chrome Runtime para Command
+   * Converte mensagem do Chrome Runtime Stops Command.
    */
   private messageToCommand(message: any): any {
     switch (message.type) {
@@ -136,6 +134,17 @@ export class MessageRouter {
       default:
         this.logger.warn(`Unknown message type: ${message.type}`);
         return null;
+    }
+  }
+
+  /**
+   * Check if extension context is valid.
+   */
+  private isExtensionContextValid(): boolean {
+    try {
+      return Boolean(chrome?.runtime?.id);
+    } catch {
+      return false;
     }
   }
 }

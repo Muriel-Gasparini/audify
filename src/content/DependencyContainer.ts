@@ -16,74 +16,41 @@ import { ToggleNormalizerHandler } from '../shared/infrastructure/messaging/hand
 import { GetConfigHandler } from '../shared/infrastructure/messaging/handlers/GetConfigHandler';
 import { GetSiteInfoHandler } from '../shared/infrastructure/messaging/handlers/GetSiteInfoHandler';
 
-// Core - Generic video detection
 import { GenericDOMAdapter } from '../core/infrastructure/GenericDOMAdapter';
 import { VideoDiscoveryService } from '../core/infrastructure/VideoDiscoveryService';
 import { CORSBypassService } from '../core/infrastructure/CORSBypassService';
 
-// Site Integrations
 import { SiteIntegrationRegistry } from '../site-integrations/SiteIntegrationRegistry';
 import { NetflixIntegration } from '../site-integrations/netflix/NetflixIntegration';
 
 /**
- * Dependency Injection Container
- * Cria e configura todas as dependências do sistema
- *
- * ARQUITETURA:
- *
- * 1. CORE GENÉRICO (funciona em QUALQUER site):
- *    - VideoDiscoveryService: encontra vídeos automaticamente
- *    - AudioNormalizationService: normaliza áudio de qualquer vídeo
- *    - CORSBypassService: permite acesso cross-origin quando necessário
- *
- * 2. INTEGRAÇÕES ESPECÍFICAS (OPCIONAIS - adicionam features extras):
- *    - Netflix: auto-skip de intros/recaps
- *    - YouTube: (futuro) pular anúncios
- *    - Outros sites: adicionados conforme necessário
- *
- * IMPORTANTE:
- * - Sites SEM integração: funcionam normalmente (normalização de áudio)
- * - Sites COM integração: ganham features específicas extras
- * - Não é necessário criar integração para cada site novo
- *
- * Padrão: Simple DI Container (não usa biblioteca externa)
- */
+   * Dependency injection container for system components.
+   */
 export class DependencyContainer {
-  // Infrastructure
   private logger!: ILogger;
   private configRepository!: IConfigRepository;
   private eventPublisher!: DomainEventPublisher;
 
-  // Core Services - Generic
   private genericDOMAdapter!: GenericDOMAdapter;
   private videoDiscoveryService!: VideoDiscoveryService;
   private corsBypassService!: CORSBypassService;
 
-  // Site Integrations
   private siteIntegrationRegistry!: SiteIntegrationRegistry;
 
-  // Audio Normalization Service
   private audioNormalizationService!: AudioNormalizationService;
 
-  // Use Cases - Audio
   private activateNormalizerUseCase!: ActivateNormalizerUseCase;
   private deactivateNormalizerUseCase!: DeactivateNormalizerUseCase;
   private updateAudioConfigUseCase!: UpdateAudioConfigUseCase;
   private getAudioStateUseCase!: GetAudioStateUseCase;
 
-  // Messaging
   private messageBus!: MessageBus;
 
-  /**
-   * Inicializa todas as dependências
-   */
   public async initialize(): Promise<void> {
-    // Infrastructure layer
     this.logger = new ConsoleLogger('[Netfrix]');
     this.configRepository = new ChromeStorageConfigRepository(this.logger);
     this.eventPublisher = DomainEventPublisher.getInstance();
 
-    // Carrega configuração inicial
     const config = await this.configRepository.load();
     const audioConfig = AudioConfig.fromPrimitives(
       config.targetLevel,
@@ -91,7 +58,6 @@ export class DependencyContainer {
       config.minGain
     );
 
-    // Core - Generic video detection (works on any site)
     this.genericDOMAdapter = new GenericDOMAdapter(this.logger);
     this.videoDiscoveryService = new VideoDiscoveryService(
       this.genericDOMAdapter,
@@ -99,14 +65,12 @@ export class DependencyContainer {
     );
     this.corsBypassService = new CORSBypassService(this.logger);
 
-    // Audio Normalization Service (generic - works with any video)
     this.audioNormalizationService = new AudioNormalizationService(
       audioConfig,
       this.logger,
       this.eventPublisher
     );
 
-    // Audio Use Cases
     this.activateNormalizerUseCase = new ActivateNormalizerUseCase(
       this.audioNormalizationService,
       this.logger
@@ -125,13 +89,10 @@ export class DependencyContainer {
 
     this.getAudioStateUseCase = new GetAudioStateUseCase(this.audioNormalizationService);
 
-    // Site Integration Registry
     this.siteIntegrationRegistry = new SiteIntegrationRegistry(this.logger);
 
-    // Register site-specific integrations
     this.registerSiteIntegrations();
 
-    // Message Bus & Handlers
     this.messageBus = new MessageBus(this.logger);
 
     this.messageBus.register(
@@ -167,36 +128,13 @@ export class DependencyContainer {
     this.logger.info('Dependency container initialized');
   }
 
-  /**
-   * Registra integrações específicas de sites (OPCIONAIS)
-   *
-   * IMPORTANTE:
-   * - Estas integrações são OPCIONAIS
-   * - Sites não listados aqui funcionam normalmente (modo genérico)
-   * - Adicione integrações apenas se o site precisa de features específicas
-   *
-   * Exemplos de quando criar integração:
-   * - Netflix: tem botões de skip que queremos automatizar
-   * - YouTube: tem anúncios que queremos pular
-   * - Twitch: tem chat/badges específicos
-   *
-   * Exemplos de quando NÃO criar:
-   * - Sites genéricos de vídeo: já funcionam automaticamente
-   * - Sites que só precisam de normalização de áudio
-   */
   private registerSiteIntegrations(): void {
-    // Netflix Integration - adiciona auto-skip de intros/recaps
     const netflixIntegration = new NetflixIntegration(this.logger);
     this.siteIntegrationRegistry.register(netflixIntegration);
-
-    // Futuramente: adicione apenas se precisar de features específicas
-    // const youtubeIntegration = new YouTubeIntegration(this.logger);
-    // this.siteIntegrationRegistry.register(youtubeIntegration);
 
     this.logger.info('Optional site integrations registered');
   }
 
-  // Getters
   public getLogger(): ILogger {
     return this.logger;
   }
