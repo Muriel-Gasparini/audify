@@ -1,12 +1,9 @@
 import { InvalidGainException } from '../exceptions/InvalidGainException';
+import { AudioLimits } from '../constants/AudioLimits';
 
-/**
-   * Audio gain value object (0.
-   * @throws {InvalidGainException}
-   */
 export class GainValue {
-  private static readonly MIN_VALUE = 0.01;
-  private static readonly MAX_VALUE = 16.0;
+  private static readonly MIN_VALUE = AudioLimits.GAIN_MIN;
+  private static readonly MAX_VALUE = AudioLimits.GAIN_MAX;
 
   private readonly value: number;
 

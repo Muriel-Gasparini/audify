@@ -1,12 +1,9 @@
 import { InvalidTargetLevelException } from '../exceptions/InvalidTargetLevelException';
+import { AudioLimits } from '../constants/AudioLimits';
 
-/**
-   * Target volume level value object (0.
-   * @throws {InvalidTargetLevelException}
-   */
 export class TargetLevel {
-  private static readonly MIN_VALUE = 0.01;
-  private static readonly MAX_VALUE = 0.3;
+  private static readonly MIN_VALUE = AudioLimits.TARGET_LEVEL_MIN;
+  private static readonly MAX_VALUE = AudioLimits.TARGET_LEVEL_MAX;
 
   private readonly value: number;
 
