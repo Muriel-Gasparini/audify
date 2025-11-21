@@ -1,0 +1,9 @@
+export const AudioLimits = {
+  GAIN_MIN: 0.01,
+  GAIN_MAX: 16.0,
+  TARGET_LEVEL_MIN: 0.01,
+  TARGET_LEVEL_MAX: 0.3,
+  DEFAULT_TARGET_LEVEL: 0.1,
+  DEFAULT_MAX_GAIN: 8.0,
+  DEFAULT_MIN_GAIN: 0.1,
+} as const;
