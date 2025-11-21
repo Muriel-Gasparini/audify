@@ -48,14 +48,6 @@ export function App() {
   const isActive = config.isActive;
   const gain = state?.gain ?? 1.0;
 
-  console.log('[App] Render state:', {
-    hasVideo,
-    isActive,
-    gain,
-    rawState: state,
-    rawConfig: config,
-  });
-
   const handleToggleClick = async () => {
     if (hasVideo) {
       await messagingService.toggleNormalizer();
