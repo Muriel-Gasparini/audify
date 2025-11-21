@@ -1,12 +1,8 @@
 import { IAudioProcessingStrategy } from './IAudioProcessingStrategy';
 
 /**
- * Strategy: Bypass Processing
- * Conecta áudio direto sem processamento (áudio original 100%)
- *
- * Fluxo: source → destination (direto)
- *        source → gain → analyser (só para medição, não afeta áudio)
- */
+   * Strategy: Bypass Processing.
+   */
 export class BypassProcessingStrategy implements IAudioProcessingStrategy {
   public connect(
     source: MediaElementAudioSourceNode,
@@ -16,15 +12,17 @@ export class BypassProcessingStrategy implements IAudioProcessingStrategy {
     analyser: AnalyserNode,
     destination: AudioDestinationNode
   ): void {
-    // Áudio direto sem processamento
-    source.connect(destination);
+    console.log('[BypassProcessingStrategy] Connecting in BYPASS mode...');
 
-    // Gain e analyser apenas para medição (não afeta o áudio)
+    source.connect(destination);
+    console.log('[BypassProcessingStrategy] Connected: source → destination (DIRECT AUDIO OUTPUT)');
+
     source.connect(gain);
     gain.connect(analyser);
+    console.log('[BypassProcessingStrategy] Connected: source → gain → analyser (for monitoring only)');
 
-    // Reseta gain para 1.0 (não afeta o áudio pois não está na cadeia principal)
     gain.gain.value = 1.0;
+    console.log('[BypassProcessingStrategy] Set gain to 1.0 (monitoring branch, does not affect audio output)');
   }
 
   public disconnect(
@@ -41,7 +39,6 @@ export class BypassProcessingStrategy implements IAudioProcessingStrategy {
       limiter.disconnect();
       analyser.disconnect();
     } catch {
-      // Ignora erros de desconexão
     }
   }
 }

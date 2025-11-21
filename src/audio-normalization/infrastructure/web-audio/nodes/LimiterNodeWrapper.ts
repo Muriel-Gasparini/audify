@@ -1,25 +1,18 @@
 /**
- * Wrapper para DynamicsCompressorNode configurado como Hard Limiter
- * Último recurso contra picos extremos
- */
+   * Hard limiter wrapper for DynamicsCompressorNode.
+   */
 export class LimiterNodeWrapper {
   constructor(private readonly node: DynamicsCompressorNode) {
     this.configureAsLimiter();
   }
 
-  /**
-   * Configura como hard limiter (brick wall)
-   * Otimizado para evitar distorção em picos extremos
-   */
   private configureAsLimiter(): void {
-    this.node.threshold.value = -3; // Limite absoluto mais alto (headroom)
-    this.node.knee.value = 0; // Hard knee para limitação precisa
-    this.node.ratio.value = 20; // Brick wall (limitação forte)
+    this.node.threshold.value = -3;
+    this.node.knee.value = 0;
+    this.node.ratio.value = 20;
 
-    // Attack mínimo mas não zero para evitar distorção
     this.node.attack.value = 0.001;
 
-    // Release rápido para recuperação natural
     this.node.release.value = 0.05;
   }
 
@@ -31,7 +24,6 @@ export class LimiterNodeWrapper {
     try {
       this.node.disconnect();
     } catch {
-      // Ignora erros de desconexão
     }
   }
 

@@ -1,12 +1,7 @@
 /**
- * Interface para estratégias de processamento de áudio (Strategy Pattern)
- *
- * Permite alternar entre diferentes modos de processamento
- */
-export interface IAudioProcessingStrategy {
-  /**
-   * Conecta os nós de áudio de acordo com a estratégia
+   * Audio processing strategy pattern for switching between processing modes.
    */
+export interface IAudioProcessingStrategy {
   connect(
     source: MediaElementAudioSourceNode,
     gain: GainNode,
@@ -16,9 +11,6 @@ export interface IAudioProcessingStrategy {
     destination: AudioDestinationNode
   ): void;
 
-  /**
-   * Desconecta todos os nós
-   */
   disconnect(
     source: MediaElementAudioSourceNode,
     gain: GainNode,

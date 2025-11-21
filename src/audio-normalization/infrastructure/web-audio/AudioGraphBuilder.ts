@@ -8,14 +8,8 @@ import { BypassProcessingStrategy } from './strategies/BypassProcessingStrategy'
 import { ILogger } from '../../../shared/infrastructure/logger/ILogger';
 
 /**
- * Audio Graph Builder
- * Constrói e gerencia o grafo de nós da Web Audio API
- *
- * Responsabilidades:
- * - Criar todos os nós necessários
- * - Conectar/desconectar nós usando estratégias
- * - Gerenciar estado do AudioContext
- */
+   * Audio Graph Builder.
+   */
 export class AudioGraphBuilder {
   private audioContext: AudioContext | null = null;
   private sourceNode: MediaElementAudioSourceNode | null = null;
@@ -30,7 +24,7 @@ export class AudioGraphBuilder {
   constructor(private readonly logger: ILogger) {}
 
   /**
-   * Inicializa o grafo de áudio com um elemento de vídeo
+   * Initializes o grafo audio com element video.
    */
   public initialize(mediaElement: HTMLVideoElement): void {
     if (this.audioContext) {
@@ -42,16 +36,13 @@ export class AudioGraphBuilder {
     try {
       console.log('[AudioGraphBuilder] Starting initialization...');
 
-      // Cria AudioContext
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       this.audioContext = new AudioContextClass();
       console.log('[AudioGraphBuilder] AudioContext created, state:', this.audioContext.state);
 
-      // Cria source node
       this.sourceNode = this.audioContext.createMediaElementSource(mediaElement);
       console.log('[AudioGraphBuilder] MediaElementSource created');
 
-      // Cria nós de processamento
       const gainNode = this.audioContext.createGain();
       this.gainNodeWrapper = new GainNodeWrapper(gainNode);
 
@@ -76,8 +67,7 @@ export class AudioGraphBuilder {
   private currentMode: 'ACTIVE' | 'BYPASS' | null = null;
 
   /**
-   * Conecta os nós usando a estratégia especificada
-   * IMPORTANTE: Só reconecta se o modo mudou (evita reconexões desnecessárias)
+   * Connects nodes using specified strategy.
    */
   public connect(isActive: boolean): void {
     if (!this.isInitialized()) {
@@ -86,9 +76,9 @@ export class AudioGraphBuilder {
 
     const newMode = isActive ? 'ACTIVE' : 'BYPASS';
 
-    // Se já está no modo correto, não faz nada
     if (this.currentMode === newMode) {
       this.logger.debug(`Already in ${newMode} mode, skipping reconnection`);
+      console.log(`[AudioGraphBuilder] Already in ${newMode} mode, skipping reconnection`);
       return;
     }
 
@@ -96,10 +86,10 @@ export class AudioGraphBuilder {
       ? this.activeStrategy
       : this.bypassStrategy;
 
-    // Desconecta tudo primeiro
+    console.log(`[AudioGraphBuilder] Connecting audio graph in ${newMode} mode...`);
+
     this.disconnect();
 
-    // Conecta usando a estratégia
     strategy.connect(
       this.sourceNode!,
       this.gainNodeWrapper!.getNativeNode(),
@@ -110,11 +100,18 @@ export class AudioGraphBuilder {
     );
 
     this.currentMode = newMode;
+
+    if (isActive) {
+      console.log('[AudioGraphBuilder] Audio path: video → gain → compressor → limiter → SPEAKERS (with processing)');
+    } else {
+      console.log('[AudioGraphBuilder] Audio path: video → SPEAKERS (direct, no processing)');
+    }
+
     this.logger.info(`Audio graph connected in ${newMode} mode`);
   }
 
   /**
-   * Desconecta todos os nós
+   * Disconnects all nodes.
    */
   private disconnect(): void {
     if (!this.isInitialized()) return;
@@ -126,12 +123,11 @@ export class AudioGraphBuilder {
       this.limiterNodeWrapper!.disconnect();
       this.analyserNodeWrapper!.disconnect();
     } catch {
-      // Ignora erros de desconexão
     }
   }
 
   /**
-   * Resume o AudioContext se estiver suspenso
+   * Resume o AudioContext se estiver suspenso.
    */
   public async resume(): Promise<void> {
     if (this.audioContext && this.audioContext.state === 'suspended') {
@@ -141,7 +137,7 @@ export class AudioGraphBuilder {
   }
 
   /**
-   * Limpa todos os recursos
+   * Cleans all resources.
    */
   public cleanup(): void {
     this.disconnect();
@@ -161,7 +157,6 @@ export class AudioGraphBuilder {
     this.logger.info('Audio graph cleaned up');
   }
 
-  // Getters
   public getGainNode(): GainNodeWrapper {
     if (!this.gainNodeWrapper) {
       throw new Error('Gain node not initialized');

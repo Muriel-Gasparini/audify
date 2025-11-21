@@ -1,9 +1,8 @@
 import { GainValue } from '../../../../shared/domain/value-objects/GainValue';
 
 /**
- * Wrapper para GainNode da Web Audio API
- * Encapsula a manipulação do GainNode com Value Objects
- */
+   * Web Audio API GainNode wrapper with value object encapsulation.
+   */
 export class GainNodeWrapper {
   constructor(private readonly node: GainNode) {}
 
@@ -15,14 +14,10 @@ export class GainNodeWrapper {
     const audioContext = this.node.context;
     const targetValue = gain.getValue();
 
-    // Cancela automações anteriores para evitar conflitos
     this.node.gain.cancelScheduledValues(audioContext.currentTime);
 
-    // Usa exponentialRampToValueAtTime ao invés de setTargetAtTime
-    // para transições mais previsíveis e suaves
     const currentValue = this.node.gain.value;
 
-    // Evita valores zero que causam erro no exponentialRamp
     const safeCurrentValue = Math.max(currentValue, 0.0001);
     const safeTargetValue = Math.max(targetValue, 0.0001);
 
@@ -45,7 +40,6 @@ export class GainNodeWrapper {
     try {
       this.node.disconnect();
     } catch {
-      // Ignora erros de desconexão
     }
   }
 

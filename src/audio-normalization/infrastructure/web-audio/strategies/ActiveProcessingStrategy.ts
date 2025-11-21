@@ -1,12 +1,8 @@
 import { IAudioProcessingStrategy } from './IAudioProcessingStrategy';
 
 /**
- * Strategy: Active Processing
- * Conecta toda a cadeia de processamento de áudio
- *
- * Fluxo: source → gain → compressor → limiter → destination
- *        source → gain → analyser (para medição)
- */
+   * Strategy: Active Processing.
+   */
 export class ActiveProcessingStrategy implements IAudioProcessingStrategy {
   public connect(
     source: MediaElementAudioSourceNode,
@@ -16,14 +12,16 @@ export class ActiveProcessingStrategy implements IAudioProcessingStrategy {
     analyser: AnalyserNode,
     destination: AudioDestinationNode
   ): void {
-    // Cadeia principal de processamento
+    console.log('[ActiveProcessingStrategy] Connecting in ACTIVE mode with full processing chain...');
+
     source.connect(gain);
     gain.connect(compressor);
     compressor.connect(limiter);
     limiter.connect(destination);
+    console.log('[ActiveProcessingStrategy] Connected: source → gain → compressor → limiter → destination (PROCESSED AUDIO OUTPUT)');
 
-    // Analyser para medição (paralelo)
     gain.connect(analyser);
+    console.log('[ActiveProcessingStrategy] Connected: gain → analyser (for volume monitoring)');
   }
 
   public disconnect(
@@ -40,7 +38,6 @@ export class ActiveProcessingStrategy implements IAudioProcessingStrategy {
       limiter.disconnect();
       analyser.disconnect();
     } catch {
-      // Ignora erros de desconexão
     }
   }
 }
