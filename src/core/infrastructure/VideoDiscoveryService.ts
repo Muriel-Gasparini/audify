@@ -141,17 +141,17 @@ export class VideoDiscoveryService {
     const timestamp = Date.now();
     const videos = this.domAdapter.findAllVideos();
 
-    console.log(`[VideoDiscoveryService] tryDiscoverVideos(force=${force}) called by: ${caller} at ${timestamp} - Found videos:`, videos.length);
+    this.logger.debug(`tryDiscoverVideos(force=${force}) called by: ${caller} at ${timestamp} - Found videos:`, videos.length);
 
     if (videos.length === 0) {
-      console.log('[VideoDiscoveryService] No videos found in DOM');
+      this.logger.debug('No videos found in DOM');
     }
 
     videos.forEach((video) => {
       const element = video.getElement();
       const alreadyDiscovered = this.discoveredVideos.has(element);
 
-      console.log('[VideoDiscoveryService] Processing video:', {
+      this.logger.debug('Processing video:', {
         src: video.getSrc(),
         isInIframe: video.isInIframe(),
         alreadyDiscovered: alreadyDiscovered,
@@ -165,9 +165,9 @@ export class VideoDiscoveryService {
 
       if (!alreadyDiscovered || force) {
         if (force && alreadyDiscovered) {
-          console.log('[VideoDiscoveryService] FORCE MODE - Re-notifying observers despite alreadyDiscovered=true');
+          this.logger.debug('FORCE MODE - Re-notifying observers despite alreadyDiscovered=true');
         } else {
-          console.log('[VideoDiscoveryService] NEW VIDEO - notifying observers');
+          this.logger.debug('NEW VIDEO - notifying observers');
         }
 
         if (!alreadyDiscovered) {
@@ -177,7 +177,7 @@ export class VideoDiscoveryService {
 
         this.notifyVideoDiscovered(video);
       } else {
-        console.log('[VideoDiscoveryService] Video already discovered - skipping notification');
+        this.logger.debug('Video already discovered - skipping notification');
       }
     });
   }
@@ -247,7 +247,7 @@ export class VideoDiscoveryService {
    * Força uma nova busca por videos.
    */
   public forceDiscovery(): void {
-    console.log('[VideoDiscoveryService] forceDiscovery() - Using FORCE MODE to bypass WeakSet check');
+    this.logger.debug('forceDiscovery() - Using FORCE MODE to bypass WeakSet check');
     this.logger.info('Force discovery triggered - will re-notify observers regardless of WeakSet state');
 
     this.tryDiscoverVideos(true, 'forceDiscovery');

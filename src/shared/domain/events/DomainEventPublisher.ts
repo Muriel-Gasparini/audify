@@ -51,7 +51,6 @@ export class DomainEventPublisher {
       try {
         handler(event);
       } catch (error) {
-        console.error(`Error handling event ${event.eventName}:`, error);
       }
     });
   }
