@@ -2,12 +2,8 @@ import { VideoDetectionService } from '../../infrastructure/VideoDetectionServic
 import { NetflixVideo } from '../../domain/entities/NetflixVideo';
 
 /**
- * Use Case: Detectar Vídeo do Netflix
- *
- * Responsabilidade:
- * - Iniciar detecção de vídeo
- * - Executar callback quando vídeo for encontrado
- */
+   * Detects Netflix video elements.
+   */
 export class DetectVideoUseCase {
   constructor(private readonly videoDetectionService: VideoDetectionService) {}
 

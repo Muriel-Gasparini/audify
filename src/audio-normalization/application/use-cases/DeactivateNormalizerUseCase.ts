@@ -2,11 +2,8 @@ import { AudioNormalizationService } from '../../infrastructure/AudioNormalizati
 import { ILogger } from '../../../shared/infrastructure/logger/ILogger';
 
 /**
- * Use Case: Desativar Normalizador
- *
- * Responsabilidade:
- * - Desativar o normalizador de áudio
- */
+   * Deactivates audio normalizer.
+   */
 export class DeactivateNormalizerUseCase {
   constructor(
     private readonly service: AudioNormalizationService,

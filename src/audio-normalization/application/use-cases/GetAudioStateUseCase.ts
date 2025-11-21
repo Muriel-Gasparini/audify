@@ -2,12 +2,9 @@ import { AudioNormalizationService } from '../../infrastructure/AudioNormalizati
 import { AudioStateDTO } from '../dto/AudioStateDTO';
 
 /**
- * Use Case: Obter Estado do Áudio
- *
- * Responsabilidade:
- * - Coletar estado atual do normalizador
- * - Retornar DTO para a UI
- */
+   * Retrieves current audio normalizer state.
+   * @returns {AudioStateDTO} Current state for UI
+   */
 export class GetAudioStateUseCase {
   constructor(private readonly service: AudioNormalizationService) {}
 
@@ -18,7 +15,7 @@ export class GetAudioStateUseCase {
 
     const state = {
       gain: gain.getValue(),
-      volume: 0, // Volume é medido no loop de normalização
+      volume: 0,
       isActive,
       hasVideo,
     };

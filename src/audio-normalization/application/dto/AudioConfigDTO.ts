@@ -1,9 +1,6 @@
 /**
- * Data Transfer Object: AudioConfigDTO
- * Representa configuração de áudio em formato primitivo
- *
- * Usado na fronteira da aplicação (UI, API, Storage)
- */
+   * Audio configuration DTO for application boundaries.
+   */
 export interface AudioConfigDTO {
   targetLevel: number;
   maxGain: number;

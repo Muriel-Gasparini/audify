@@ -1,37 +1,20 @@
 import { AudioNormalizationService } from '../../infrastructure/AudioNormalizationService';
 import { ILogger } from '../../../shared/infrastructure/logger/ILogger';
 
-/**
- * Resultado da ativação do normalizador
- */
 export type ActivationResult =
   | { success: true }
   | { success: false; reason: 'NO_VIDEO' | 'ALREADY_ACTIVE' };
 
 /**
- * Use Case: Ativar Normalizador
- *
- * Responsabilidade:
- * - Ativar o normalizador de áudio
- * - Validar pré-condições
- * - Retornar resultado (sucesso ou motivo da falha)
- *
- * IMPORTANTE: Este use case NÃO lança exceções.
- * Estados esperados (como "sem vídeo") são retornados como resultados.
- * Isso permite que o handler implemente ativação diferida quando o vídeo
- * não está disponível ainda.
- */
+   * Activates audio normalizer with validation.
+   * @returns {ActivationResult} Operation result with success status or failure reason
+   */
 export class ActivateNormalizerUseCase {
   constructor(
     private readonly service: AudioNormalizationService,
     private readonly logger: ILogger
   ) {}
 
-  /**
-   * Executa a ativação do normalizador
-   *
-   * @returns Resultado da operação (sucesso ou motivo da falha)
-   */
   public execute(): ActivationResult {
     if (!this.service.hasVideoAttached()) {
       this.logger.info('Cannot activate normalizer: no video attached (will activate when video is discovered)');

@@ -1,9 +1,6 @@
 /**
- * Data Transfer Object: AudioStateDTO
- * Representa o estado atual do normalizador
- *
- * Usado para comunicação com a UI
- */
+   * Current normalizer state DTO.
+   */
 export interface AudioStateDTO {
   gain: number;
   volume: number;

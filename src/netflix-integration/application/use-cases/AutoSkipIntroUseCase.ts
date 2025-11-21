@@ -1,11 +1,8 @@
 import { AutoSkipService } from '../../infrastructure/AutoSkipService';
 
 /**
- * Use Case: Auto Skip de Aberturas
- *
- * Responsabilidade:
- * - Iniciar/parar auto-skip de aberturas e recaps
- */
+   * Controls Netflix intro and recap auto-skip.
+   */
 export class AutoSkipIntroUseCase {
   constructor(private readonly autoSkipService: AutoSkipService) {}
 
