@@ -12,16 +12,12 @@ export class ActiveProcessingStrategy implements IAudioProcessingStrategy {
     analyser: AnalyserNode,
     destination: AudioDestinationNode
   ): void {
-    console.log('[ActiveProcessingStrategy] Connecting in ACTIVE mode with full processing chain...');
-
     source.connect(gain);
     gain.connect(compressor);
     compressor.connect(limiter);
     limiter.connect(destination);
-    console.log('[ActiveProcessingStrategy] Connected: source → gain → compressor → limiter → destination (PROCESSED AUDIO OUTPUT)');
 
     gain.connect(analyser);
-    console.log('[ActiveProcessingStrategy] Connected: gain → analyser (for volume monitoring)');
   }
 
   public disconnect(

@@ -29,19 +29,19 @@ export class AudioGraphBuilder {
   public initialize(mediaElement: HTMLVideoElement): void {
     if (this.audioContext) {
       this.logger.warn('Audio graph already initialized, cleaning up first');
-      console.log('[AudioGraphBuilder] Already initialized, cleaning up');
+      this.logger.debug('Already initialized, cleaning up');
       this.cleanup();
     }
 
     try {
-      console.log('[AudioGraphBuilder] Starting initialization...');
+      this.logger.debug('Starting initialization...');
 
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       this.audioContext = new AudioContextClass();
-      console.log('[AudioGraphBuilder] AudioContext created, state:', this.audioContext.state);
+      this.logger.debug('AudioContext created, state:', this.audioContext.state);
 
       this.sourceNode = this.audioContext.createMediaElementSource(mediaElement);
-      console.log('[AudioGraphBuilder] MediaElementSource created');
+      this.logger.debug('MediaElementSource created');
 
       const gainNode = this.audioContext.createGain();
       this.gainNodeWrapper = new GainNodeWrapper(gainNode);
@@ -55,10 +55,10 @@ export class AudioGraphBuilder {
       const analyserNode = this.audioContext.createAnalyser();
       this.analyserNodeWrapper = new AnalyserNodeWrapper(analyserNode);
 
-      console.log('[AudioGraphBuilder] All nodes created successfully');
+      this.logger.debug('All nodes created successfully');
       this.logger.info('Audio graph initialized successfully');
     } catch (error) {
-      console.error('[AudioGraphBuilder] CRITICAL ERROR during initialization:', error);
+      this.logger.error('CRITICAL ERROR during initialization:', error);
       this.logger.error('Failed to initialize audio graph', error);
       throw error;
     }
@@ -78,7 +78,7 @@ export class AudioGraphBuilder {
 
     if (this.currentMode === newMode) {
       this.logger.debug(`Already in ${newMode} mode, skipping reconnection`);
-      console.log(`[AudioGraphBuilder] Already in ${newMode} mode, skipping reconnection`);
+      this.logger.debug(`Already in ${newMode} mode, skipping reconnection`);
       return;
     }
 
@@ -86,7 +86,7 @@ export class AudioGraphBuilder {
       ? this.activeStrategy
       : this.bypassStrategy;
 
-    console.log(`[AudioGraphBuilder] Connecting audio graph in ${newMode} mode...`);
+    this.logger.debug(`Connecting audio graph in ${newMode} mode...`);
 
     this.disconnect();
 
@@ -102,9 +102,9 @@ export class AudioGraphBuilder {
     this.currentMode = newMode;
 
     if (isActive) {
-      console.log('[AudioGraphBuilder] Audio path: video → gain → compressor → limiter → SPEAKERS (with processing)');
+      this.logger.debug('Audio path: video → gain → compressor → limiter → SPEAKERS (with processing)');
     } else {
-      console.log('[AudioGraphBuilder] Audio path: video → SPEAKERS (direct, no processing)');
+      this.logger.debug('Audio path: video → SPEAKERS (direct, no processing)');
     }
 
     this.logger.info(`Audio graph connected in ${newMode} mode`);
@@ -180,7 +180,7 @@ export class AudioGraphBuilder {
 
   public isInitialized(): boolean {
     const result = this.audioContext !== null && this.sourceNode !== null;
-    console.log('[AudioGraphBuilder] isInitialized() called:', {
+    this.logger.debug('isInitialized() called:', {
       audioContext: this.audioContext ? 'EXISTS' : 'NULL',
       sourceNode: this.sourceNode ? 'EXISTS' : 'NULL',
       result: result
