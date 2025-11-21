@@ -1,16 +1,10 @@
 import { DomainEvent } from './DomainEvent';
 
-/**
- * Tipo para funções que escutam eventos de domínio
- */
 type EventHandler<T extends DomainEvent = DomainEvent> = (event: T) => void;
 
 /**
- * Publisher de eventos de domínio (Observer Pattern)
- *
- * Permite comunicação desacoplada entre diferentes partes do sistema
- * através de eventos de domínio
- */
+   * Domain event publisher using observer pattern.
+   */
 export class DomainEventPublisher {
   private static instance: DomainEventPublisher;
   private handlers: Map<string, EventHandler[]> = new Map();
@@ -24,9 +18,6 @@ export class DomainEventPublisher {
     return DomainEventPublisher.instance;
   }
 
-  /**
-   * Registra um handler para um tipo específico de evento
-   */
   public subscribe<T extends DomainEvent>(
     eventName: string,
     handler: EventHandler<T>
@@ -39,9 +30,6 @@ export class DomainEventPublisher {
     handlers.push(handler as EventHandler);
   }
 
-  /**
-   * Remove um handler específico de um evento
-   */
   public unsubscribe<T extends DomainEvent>(
     eventName: string,
     handler: EventHandler<T>
@@ -55,14 +43,10 @@ export class DomainEventPublisher {
     }
   }
 
-  /**
-   * Publica um evento para todos os handlers registrados
-   */
   public publish(event: DomainEvent): void {
     const handlers = this.handlers.get(event.eventName);
     if (!handlers || handlers.length === 0) return;
 
-    // Executa handlers de forma síncrona
     handlers.forEach((handler) => {
       try {
         handler(event);
@@ -72,16 +56,10 @@ export class DomainEventPublisher {
     });
   }
 
-  /**
-   * Remove todos os handlers (útil para testes)
-   */
   public clearAll(): void {
     this.handlers.clear();
   }
 
-  /**
-   * Remove todos os handlers de um evento específico
-   */
   public clearEvent(eventName: string): void {
     this.handlers.delete(eventName);
   }

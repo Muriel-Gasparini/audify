@@ -1,10 +1,8 @@
 import { DomainEvent } from './DomainEvent';
 
 /**
- * Evento: Configuração do normalizador foi alterada
- *
- * Disparado quando qualquer configuração (targetLevel, maxGain, minGain) é modificada
- */
+   * Normalizer configuration changed domain event.
+   */
 export interface ConfigurationChangedPayload {
   targetLevel?: number;
   maxGain?: number;

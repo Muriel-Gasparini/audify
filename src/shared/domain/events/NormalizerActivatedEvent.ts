@@ -1,8 +1,8 @@
 import { DomainEvent } from './DomainEvent';
 
 /**
- * Evento: Normalizador foi ativado ou desativado
- */
+   * Normalizer activation state changed domain event.
+   */
 export interface NormalizerActivatedPayload {
   isActive: boolean;
 }
