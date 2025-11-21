@@ -11,7 +11,6 @@ export class GetStateHandler implements CommandHandler<GetStateCommand, AudioSta
 
   public handle(_command: GetStateCommand): AudioStateDTO {
     const state = this.getStateUseCase.execute();
-    console.log('[GetStateHandler] Handling GET_STATE, returning:', state);
     return state;
   }
 }

@@ -1,24 +1,13 @@
 import { CommandHandler } from '../commands/Command';
 import { UpdateConfigCommand } from '../commands/UpdateConfigCommand';
 import { UpdateAudioConfigUseCase } from '../../../../audio-normalization/application/use-cases/UpdateAudioConfigUseCase';
-import { IConfigRepository } from '../../storage/IConfigRepository';
+import { AudioConfigDTO } from '../../../../audio-normalization/application/dto/AudioConfigDTO';
 
-/**
-   * Handles configuration update commands.
-   */
 export class UpdateConfigHandler implements CommandHandler<UpdateConfigCommand, void> {
-  constructor(
-    private readonly updateConfigUseCase: UpdateAudioConfigUseCase,
-    private readonly configRepository: IConfigRepository
-  ) {}
+  constructor(private readonly updateConfigUseCase: UpdateAudioConfigUseCase) {}
 
   public async handle(command: UpdateConfigCommand): Promise<void> {
-    await this.updateConfigUseCase.execute(command.payload);
-
-    if ('isActive' in command.payload) {
-      await this.configRepository.update({
-        isActive: (command.payload as any).isActive,
-      });
-    }
+    const payload = command.payload as Partial<AudioConfigDTO>;
+    await this.updateConfigUseCase.execute(payload);
   }
 }
