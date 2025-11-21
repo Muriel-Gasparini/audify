@@ -1,0 +1,20 @@
+{
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
+  "root": true,
+  "rules": {
+    "no-console": "error"
+  },
+  "overrides": [
+    {
+      "files": ["src/shared/infrastructure/logger/ConsoleLogger.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
+}
