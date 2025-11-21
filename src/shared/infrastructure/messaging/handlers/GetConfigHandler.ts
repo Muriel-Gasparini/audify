@@ -3,8 +3,8 @@ import { GetConfigCommand } from '../commands/GetConfigCommand';
 import { IConfigRepository, NormalizerConfig } from '../../storage/IConfigRepository';
 
 /**
- * Handler: Obter Configuração
- */
+   * Handles configuration retrieval commands.
+   */
 export class GetConfigHandler implements CommandHandler<GetConfigCommand, NormalizerConfig> {
   constructor(private readonly configRepository: IConfigRepository) {}
 

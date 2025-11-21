@@ -1,9 +1,8 @@
 import { Command } from './Command';
 
 /**
- * Command: Get Site Info
- * Obtém informações sobre integração específica do site atual
- */
+   * Gets current site integration information.
+   */
 export class GetSiteInfoCommand implements Command {
   public readonly type = 'GET_SITE_INFO';
 }

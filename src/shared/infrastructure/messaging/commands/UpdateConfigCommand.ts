@@ -1,8 +1,8 @@
 import { Command } from './Command';
 
 /**
- * Command: Atualizar Configuração
- */
+   * Updates configuration command.
+   */
 export interface UpdateConfigPayload {
   targetLevel?: number;
   maxGain?: number;

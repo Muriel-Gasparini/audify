@@ -4,8 +4,8 @@ import { UpdateAudioConfigUseCase } from '../../../../audio-normalization/applic
 import { IConfigRepository } from '../../storage/IConfigRepository';
 
 /**
- * Handler: Atualizar Configuração
- */
+   * Handles configuration update commands.
+   */
 export class UpdateConfigHandler implements CommandHandler<UpdateConfigCommand, void> {
   constructor(
     private readonly updateConfigUseCase: UpdateAudioConfigUseCase,
@@ -15,7 +15,6 @@ export class UpdateConfigHandler implements CommandHandler<UpdateConfigCommand, 
   public async handle(command: UpdateConfigCommand): Promise<void> {
     await this.updateConfigUseCase.execute(command.payload);
 
-    // Também atualiza o isActive se necessário
     if ('isActive' in command.payload) {
       await this.configRepository.update({
         isActive: (command.payload as any).isActive,

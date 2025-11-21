@@ -1,8 +1,8 @@
 import { Command } from './Command';
 
 /**
- * Command: Obter Estado do Normalizador
- */
+   * Gets normalizer state.
+   */
 export class GetStateCommand implements Command {
   public readonly type = 'GET_STATE';
 }

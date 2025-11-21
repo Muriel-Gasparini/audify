@@ -4,8 +4,8 @@ import { GetAudioStateUseCase } from '../../../../audio-normalization/applicatio
 import { AudioStateDTO } from '../../../../audio-normalization/application/dto/AudioStateDTO';
 
 /**
- * Handler: Obter Estado
- */
+   * Handles state retrieval commands.
+   */
 export class GetStateHandler implements CommandHandler<GetStateCommand, AudioStateDTO> {
   constructor(private readonly getStateUseCase: GetAudioStateUseCase) {}
 

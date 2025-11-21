@@ -1,8 +1,8 @@
 import { Command } from './Command';
 
 /**
- * Command: Toggle (Ativar/Desativar) Normalizador
- */
+   * Toggles normalizer activation state.
+   */
 export class ToggleNormalizerCommand implements Command {
   public readonly type = 'TOGGLE_NORMALIZER';
 }

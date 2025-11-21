@@ -2,22 +2,13 @@ import { Command, CommandHandler } from './commands/Command';
 import { ILogger } from '../logger/ILogger';
 
 /**
- * Message Bus (Mediator Pattern)
- * Roteia comandos para seus handlers apropriados
- *
- * Responsabilidades:
- * - Registrar handlers para comandos
- * - Despachar comandos para handlers
- * - Gerenciar erros
- */
+   * Command message bus using mediator pattern.
+   */
 export class MessageBus {
   private handlers: Map<string, CommandHandler<any, any>> = new Map();
 
   constructor(private readonly logger: ILogger) {}
 
-  /**
-   * Registra um handler para um tipo de comando
-   */
   public register<TCommand extends Command, TResponse>(
     commandType: string,
     handler: CommandHandler<TCommand, TResponse>
@@ -30,9 +21,6 @@ export class MessageBus {
     this.logger.debug(`Handler registered for ${commandType}`);
   }
 
-  /**
-   * Despacha um comando para seu handler
-   */
   public async dispatch<TResponse>(command: Command): Promise<TResponse> {
     const handler = this.handlers.get(command.type);
 
@@ -53,16 +41,10 @@ export class MessageBus {
     }
   }
 
-  /**
-   * Verifica se existe handler para um comando
-   */
   public hasHandler(commandType: string): boolean {
     return this.handlers.has(commandType);
   }
 
-  /**
-   * Remove todos os handlers (útil para testes)
-   */
   public clearAll(): void {
     this.handlers.clear();
     this.logger.debug('All handlers cleared');

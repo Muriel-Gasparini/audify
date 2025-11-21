@@ -1,8 +1,8 @@
 import { Command } from './Command';
 
 /**
- * Command: Obter Configuração
- */
+   * Gets normalizer configuration.
+   */
 export class GetConfigCommand implements Command {
   public readonly type = 'GET_CONFIG';
 }
