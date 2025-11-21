@@ -61,8 +61,6 @@ export class PopupMessagingService {
               const isConnectionError = lastError.message?.includes('Receiving end does not exist');
 
               if (isConnectionError && retryCount < PopupMessagingService.MAX_RETRIES) {
-                console.log(`[PopupMessaging] Content script not ready, retrying... (${retryCount + 1}/${PopupMessagingService.MAX_RETRIES})`);
-
                 await this.delay(PopupMessagingService.RETRY_DELAY_MS * (retryCount + 1));
 
                 try {
@@ -72,7 +70,6 @@ export class PopupMessagingService {
                   reject(error);
                 }
               } else {
-                console.error('[PopupMessaging] Failed to send message:', lastError.message);
                 reject(new Error(lastError.message || 'Failed to communicate with content script'));
               }
             } else {
@@ -97,17 +94,15 @@ export class PopupMessagingService {
 
   public async updateConfig(partialConfig: Partial<AudioConfig>): Promise<void> {
     await this.sendMessageToActiveTab<{ success: boolean }>({
-      type: 'SET_CONFIG',
+      type: 'UPDATE_CONFIG',
       data: partialConfig,
     });
   }
 
   public async getState(): Promise<AudioState> {
-    console.log('[PopupMessagingService] Sending GET_STATE message...');
     const response = await this.sendMessageToActiveTab<{ state: AudioState }>({
       type: 'GET_STATE',
     });
-    console.log('[PopupMessagingService] Received GET_STATE response:', response);
     return response.state;
   }
 
