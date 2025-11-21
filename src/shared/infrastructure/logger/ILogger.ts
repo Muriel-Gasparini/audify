@@ -1,8 +1,6 @@
 /**
- * Interface de Logger (Port - Hexagonal Architecture)
- *
- * Permite trocar a implementação de logging sem afetar o domínio
- */
+   * Logger interface.
+   */
 export interface ILogger {
   debug(message: string, ...args: unknown[]): void;
   info(message: string, ...args: unknown[]): void;

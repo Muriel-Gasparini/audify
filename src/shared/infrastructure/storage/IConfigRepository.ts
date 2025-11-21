@@ -1,6 +1,6 @@
 /**
- * Configuração do normalizador (Domain Model)
- */
+   * Normalizer configuration model.
+   */
 export interface NormalizerConfig {
   targetLevel: number;
   maxGain: number;
@@ -9,25 +9,12 @@ export interface NormalizerConfig {
 }
 
 /**
- * Interface de Repository para configurações (Port)
- *
- * Abstração para persistência de configurações
- * Permite trocar chrome.storage por localStorage, IndexedDB, etc.
- */
-export interface IConfigRepository {
-  /**
-   * Carrega a configuração salva
-   * Retorna configuração padrão se não existir
+   * Configuration repository port.
    */
+export interface IConfigRepository {
   load(): Promise<NormalizerConfig>;
 
-  /**
-   * Salva a configuração completa
-   */
   save(config: NormalizerConfig): Promise<void>;
 
-  /**
-   * Atualiza parcialmente a configuração
-   */
   update(partialConfig: Partial<NormalizerConfig>): Promise<NormalizerConfig>;
 }

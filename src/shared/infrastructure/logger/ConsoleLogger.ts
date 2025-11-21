@@ -1,10 +1,8 @@
 import { ILogger } from './ILogger';
 
 /**
- * Implementação de Logger usando console.log
- *
- * Adapter para a API de console do navegador
- */
+   * Implementation of Logger using console.
+   */
 export class ConsoleLogger implements ILogger {
   private readonly prefix: string;
 
@@ -26,9 +24,12 @@ export class ConsoleLogger implements ILogger {
 
   public error(message: string, error?: Error | unknown, ...args: unknown[]): void {
     if (error instanceof Error) {
-      console.error(`${this.prefix} ❌ ${message}`, error.message, error.stack, ...args);
-    } else {
+      console.error(`${this.prefix} ❌ ${message}`, error.message, ...args);
+      console.error(error.stack);
+    } else if (error !== undefined) {
       console.error(`${this.prefix} ❌ ${message}`, error, ...args);
+    } else {
+      console.error(`${this.prefix} ❌ ${message}`, ...args);
     }
   }
 }
