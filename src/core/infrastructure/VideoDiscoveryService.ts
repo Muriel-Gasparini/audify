@@ -4,32 +4,18 @@ import { IVideoDiscoveryObserver } from '../domain/services/IVideoDiscoveryObser
 import { ILogger } from '../../shared/infrastructure/logger/ILogger';
 
 /**
- * Video Discovery Service
- * Descobre vídeos HTML5 em QUALQUER site (principal + iframes)
- *
- * IMPORTANTE:
- * - Funciona em QUALQUER site automaticamente
- * - NÃO precisa de configuração específica por site
- * - Encontra qualquer elemento <video> no DOM
- * - Funciona em documento principal e iframes
- *
- * Como funciona:
- * 1. Busca inicial por vídeos existentes
- * 2. MutationObserver monitora novos vídeos adicionados ao DOM
- * 3. Polling periódico para vídeos carregados assincronamente
- * 4. Notifica observadores quando vídeo é encontrado
- *
- * Responsabilidades:
- * - Detectar elementos <video> no DOM
- * - Monitorar documento principal e iframes
- * - Notificar observadores
- * - Lidar com vídeos carregados dinamicamente
- */
+   * Video Discovery Service.
+   */
 export class VideoDiscoveryService {
   private observer: MutationObserver | null = null;
   private retryInterval: number | null = null;
   private observers: IVideoDiscoveryObserver[] = [];
   private discoveredVideos = new WeakSet<HTMLVideoElement>();
+
+  private debounceTimer: number | null = null;
+  private readonly DEBOUNCE_MS = 100;
+
+  private hasFoundVideo = false;
 
   constructor(
     private readonly domAdapter: GenericDOMAdapter,
@@ -37,14 +23,14 @@ export class VideoDiscoveryService {
   ) {}
 
   /**
-   * Registra um observador
+   * Registers an observer.
    */
   public addObserver(observer: IVideoDiscoveryObserver): void {
     this.observers.push(observer);
   }
 
   /**
-   * Remove um observador
+   * Removes an observer.
    */
   public removeObserver(observer: IVideoDiscoveryObserver): void {
     const index = this.observers.indexOf(observer);
@@ -54,15 +40,12 @@ export class VideoDiscoveryService {
   }
 
   /**
-   * Inicia a descoberta de vídeos
+   * Starts video discovery.
    */
   public startDiscovery(): void {
-    // Tenta detectar imediatamente
-    this.tryDiscoverVideos();
+    this.tryDiscoverVideos(false, 'startDiscovery-initial');
 
-    // Setup MutationObserver para monitorar mudanças no DOM
     this.observer = new MutationObserver((mutations) => {
-      // Verifica se alguma mutação adicionou elementos
       let shouldCheck = false;
 
       for (const mutation of mutations) {
@@ -73,34 +56,46 @@ export class VideoDiscoveryService {
       }
 
       if (shouldCheck) {
-        this.tryDiscoverVideos();
+        this.tryDiscoverVideos(false, 'MutationObserver');
       }
     });
 
-    // Monitora documento principal
     this.observer.observe(document.documentElement, {
       childList: true,
       subtree: true,
     });
 
-    // Monitora iframes que podem ser adicionados
     this.monitorIframes();
 
     this.logger.info('Video discovery service started');
 
-    // Setup retry interval para descobrir vídeos que carregam assincronamente
-    this.retryInterval = window.setInterval(() => {
-      this.tryDiscoverVideos();
-    }, 2000);
+    let elapsedTime = 0;
+    const initialInterval = 2000;
+    const slowInterval = 5000;
+    const switchPoint = 10000;
+    const maxDuration = 60000;
 
-    // Para retry após 60 segundos (vídeos geralmente carregam rápido)
-    setTimeout(() => {
-      this.stopRetry();
-    }, 60000);
+    const executeRetry = () => {
+      this.tryDiscoverVideos(false, 'retryInterval');
+
+      elapsedTime += this.hasFoundVideo ? slowInterval : initialInterval;
+
+      if (elapsedTime >= maxDuration) {
+        this.stopRetry();
+        this.logger.info('Retry interval stopped after max duration');
+        return;
+      }
+
+      const nextInterval = (elapsedTime >= switchPoint || this.hasFoundVideo) ? slowInterval : initialInterval;
+
+      this.retryInterval = window.setTimeout(executeRetry, nextInterval);
+    };
+
+    this.retryInterval = window.setTimeout(executeRetry, initialInterval);
   }
 
   /**
-   * Para a descoberta
+   * Stops discovery.
    */
   public stopDiscovery(): void {
     if (this.observer) {
@@ -108,17 +103,45 @@ export class VideoDiscoveryService {
       this.observer = null;
     }
 
+    if (this.debounceTimer !== null) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+
     this.stopRetry();
     this.logger.info('Video discovery service stopped');
   }
 
   /**
-   * Tenta descobrir vídeos
+   * Attempts to discover videos (debounced wrapper).
+   * @param force If true, notifies observers even if video already discovered
+   * @param caller Caller identifier for debug
    */
-  private tryDiscoverVideos(): void {
+  private tryDiscoverVideos(force: boolean = false, caller: string = 'unknown'): void {
+    if (!force) {
+      if (this.debounceTimer !== null) {
+        clearTimeout(this.debounceTimer);
+      }
+
+      this.debounceTimer = window.setTimeout(() => {
+        this.debounceTimer = null;
+        this.tryDiscoverVideosImmediate(force, caller);
+      }, this.DEBOUNCE_MS);
+    } else {
+      this.tryDiscoverVideosImmediate(force, caller);
+    }
+  }
+
+  /**
+   * Attempts to discover videos (immediate execution).
+   * @param force If true, notifies observers even if video already discovered
+   * @param caller Caller identifier for debug
+   */
+  private tryDiscoverVideosImmediate(force: boolean = false, caller: string = 'unknown'): void {
+    const timestamp = Date.now();
     const videos = this.domAdapter.findAllVideos();
 
-    console.log('[VideoDiscoveryService] tryDiscoverVideos - Found videos:', videos.length);
+    console.log(`[VideoDiscoveryService] tryDiscoverVideos(force=${force}) called by: ${caller} at ${timestamp} - Found videos:`, videos.length);
 
     if (videos.length === 0) {
       console.log('[VideoDiscoveryService] No videos found in DOM');
@@ -132,15 +155,26 @@ export class VideoDiscoveryService {
         src: video.getSrc(),
         isInIframe: video.isInIframe(),
         alreadyDiscovered: alreadyDiscovered,
+        force: force,
         isConnected: element.isConnected,
         readyState: element.readyState,
-        paused: element.paused
+        paused: element.paused,
+        caller: caller,
+        timestamp: timestamp
       });
 
-      // Só notifica se ainda não foi descoberto
-      if (!alreadyDiscovered) {
-        console.log('[VideoDiscoveryService] NEW VIDEO - notifying observers');
-        this.discoveredVideos.add(element);
+      if (!alreadyDiscovered || force) {
+        if (force && alreadyDiscovered) {
+          console.log('[VideoDiscoveryService] FORCE MODE - Re-notifying observers despite alreadyDiscovered=true');
+        } else {
+          console.log('[VideoDiscoveryService] NEW VIDEO - notifying observers');
+        }
+
+        if (!alreadyDiscovered) {
+          this.discoveredVideos.add(element);
+          this.hasFoundVideo = true;
+        }
+
         this.notifyVideoDiscovered(video);
       } else {
         console.log('[VideoDiscoveryService] Video already discovered - skipping notification');
@@ -149,18 +183,29 @@ export class VideoDiscoveryService {
   }
 
   /**
-   * Monitora iframes sendo adicionados ao DOM
+   * Monitors iframes being added to DOM.
    */
   private monitorIframes(): void {
     const iframeObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         mutation.addedNodes.forEach((node) => {
           if (node instanceof HTMLIFrameElement) {
-            // Espera iframe carregar antes de buscar vídeos dentro dele
+            if (this.isSandboxedIframe(node)) {
+              this.logger.debug('Skipping sandboxed iframe in video discovery - cannot access content');
+              return;
+            }
+
+            if (this.isAboutBlank(node)) {
+              this.logger.debug('Skipping about:blank iframe in video discovery - no meaningful content');
+              return;
+            }
+
             node.addEventListener('load', () => {
-              setTimeout(() => {
-                this.tryDiscoverVideos();
-              }, 100);
+              if (!this.isSandboxedIframe(node) && !this.isAboutBlank(node)) {
+                setTimeout(() => {
+                  this.tryDiscoverVideos(false, 'iframeLoad');
+                }, 100);
+              }
             });
           }
         });
@@ -174,7 +219,7 @@ export class VideoDiscoveryService {
   }
 
   /**
-   * Notifica observadores sobre vídeo descoberto
+   * Notifies observadores sobre vídeo descoberto.
    */
   private notifyVideoDiscovered(video: GenericVideo): void {
     this.logger.info(`Video discovered: ${video.isInIframe() ? 'iframe' : 'main'} context, src: ${video.getSrc()}`);
@@ -189,37 +234,59 @@ export class VideoDiscoveryService {
   }
 
   /**
-   * Para o retry interval
+   * Stops retry interval/timeout.
    */
   private stopRetry(): void {
     if (this.retryInterval !== null) {
-      clearInterval(this.retryInterval);
+      clearTimeout(this.retryInterval);
       this.retryInterval = null;
     }
   }
 
   /**
-   * Força uma nova busca por vídeos
-   * CRITICAL: Clears discoveredVideos WeakSet to allow re-attachment
-   *
-   * This is called by the health monitor when a video is lost.
-   * Clearing the WeakSet ensures that previously discovered videos
-   * will be treated as NEW, triggering re-notification and re-attachment.
-   *
-   * Without this, the cycle would be:
-   * 1. Video discovered → added to WeakSet → notified ✅
-   * 2. Video element replaced/removed → AudioContext cleaned up
-   * 3. forceDiscovery() called → same video found BUT alreadyDiscovered=true ❌
-   * 4. Video NOT re-notified → never re-attached ❌
-   * 5. Loop repeats forever
+   * Força uma nova busca por videos.
    */
   public forceDiscovery(): void {
-    console.log('[VideoDiscoveryService] forceDiscovery() - CLEARING discoveredVideos WeakSet to allow re-attachment');
-    this.logger.info('Force discovery triggered - clearing WeakSet to allow video re-attachment');
+    console.log('[VideoDiscoveryService] forceDiscovery() - Using FORCE MODE to bypass WeakSet check');
+    this.logger.info('Force discovery triggered - will re-notify observers regardless of WeakSet state');
 
-    // CRITICAL FIX: Clear the WeakSet so all videos are treated as new
-    this.discoveredVideos = new WeakSet<HTMLVideoElement>();
+    this.tryDiscoverVideos(true, 'forceDiscovery');
+  }
 
-    this.tryDiscoverVideos();
+  /**
+   * Checks if an iframe is sandboxed and restricted.
+   */
+  private isSandboxedIframe(iframe: HTMLIFrameElement): boolean {
+    try {
+      if (iframe.hasAttribute('sandbox')) {
+        const sandbox = iframe.getAttribute('sandbox') || '';
+        return !sandbox.includes('allow-scripts') || !sandbox.includes('allow-same-origin');
+      }
+      return false;
+    } catch {
+      return true;
+    }
+  }
+
+  /**
+   * Checks if an iframe points to about:blank or about:srcdoc.
+   */
+  private isAboutBlank(iframe: HTMLIFrameElement): boolean {
+    try {
+      const src = iframe.src;
+
+      if (src === 'about:blank' || src === 'about:srcdoc' || src === '') {
+        return true;
+      }
+
+      try {
+        const href = iframe.contentWindow?.location?.href;
+        return href === 'about:blank' || href === 'about:srcdoc';
+      } catch {
+        return false;
+      }
+    } catch {
+      return true;
+    }
   }
 }

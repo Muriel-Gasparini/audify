@@ -2,22 +2,15 @@ import { GenericVideo } from '../domain/entities/GenericVideo';
 import { ILogger } from '../../shared/infrastructure/logger/ILogger';
 
 /**
- * Generic DOM Adapter
- * Busca vídeos em QUALQUER site (documento principal + iframes)
- *
- * Responsabilidades:
- * - Encontrar todos os elementos de vídeo HTML5
- * - Buscar no documento principal
- * - Buscar em iframes same-origin
- * - Encapsular lógica de acesso ao DOM
- */
+   * Generic DOM Adapter.
+   */
 export class GenericDOMAdapter {
   private static readonly VIDEO_SELECTOR = 'video';
 
   constructor(private readonly logger: ILogger) {}
 
   /**
-   * Encontra todos os vídeos no documento principal
+   * Finds all videos in main document.
    */
   public findVideosInMainDocument(): GenericVideo[] {
     const videos: GenericVideo[] = [];
@@ -26,9 +19,7 @@ export class GenericDOMAdapter {
     videoElements.forEach((element) => {
       if (element instanceof HTMLVideoElement) {
         const video = new GenericVideo(element, 'main');
-        if (video.isReady()) {
-          videos.push(video);
-        }
+        videos.push(video);
       }
     });
 
@@ -36,7 +27,7 @@ export class GenericDOMAdapter {
   }
 
   /**
-   * Encontra todos os vídeos em iframes same-origin
+   * Finds all videos in same-origin iframes.
    */
   public findVideosInIframes(): GenericVideo[] {
     const videos: GenericVideo[] = [];
@@ -47,8 +38,6 @@ export class GenericDOMAdapter {
         const iframeVideos = this.extractVideosFromIframe(iframe);
         videos.push(...iframeVideos);
       } catch (error) {
-        // Cross-origin iframe - não pode acessar
-        // Isso é esperado e normal
       }
     });
 
@@ -56,7 +45,7 @@ export class GenericDOMAdapter {
   }
 
   /**
-   * Encontra TODOS os vídeos (principal + iframes)
+   * Finds all videos (main + iframes).
    */
   public findAllVideos(): GenericVideo[] {
     const mainVideos = this.findVideosInMainDocument();
@@ -72,16 +61,14 @@ export class GenericDOMAdapter {
   }
 
   /**
-   * Encontra o primeiro vídeo pronto (prioriza principal, depois iframes)
+   * Finds the first vídeo ready (prioritizes main, then iframes).
    */
   public findFirstReadyVideo(): GenericVideo | null {
-    // Tenta no documento principal primeiro
     const mainVideos = this.findVideosInMainDocument();
     if (mainVideos.length > 0) {
       return mainVideos[0];
     }
 
-    // Tenta em iframes
     const iframeVideos = this.findVideosInIframes();
     if (iframeVideos.length > 0) {
       return iframeVideos[0];
@@ -91,14 +78,13 @@ export class GenericDOMAdapter {
   }
 
   /**
-   * Extrai vídeos de um iframe específico
+   * Extracts videos from specific iframe.
    */
   private extractVideosFromIframe(iframe: HTMLIFrameElement): GenericVideo[] {
     const videos: GenericVideo[] = [];
 
     try {
-      // Tenta acessar contentDocument (só funciona para same-origin)
-      const iframeDocument = iframe.contentDocument || iframe.contentWindow?.document;
+      const iframeDocument = this.getAccessibleIframeDocument(iframe);
 
       if (!iframeDocument) {
         return videos;
@@ -111,54 +97,88 @@ export class GenericDOMAdapter {
           const origin = this.getIframeOrigin(iframe);
           const video = new GenericVideo(element, 'iframe', origin);
 
-          if (video.isReady()) {
-            videos.push(video);
-          }
+          videos.push(video);
         }
       });
     } catch (error) {
-      // Cross-origin iframe - não pode acessar
-      // Silenciosamente ignora
+      if (error instanceof DOMException && error.name === 'SecurityError') {
+        this.logger.debug('SecurityError accessing iframe - sandboxed or cross-origin');
+      }
     }
 
     return videos;
   }
 
   /**
-   * Obtém a origem de um iframe
+   * Gets origin of um iframe.
    */
   private getIframeOrigin(iframe: HTMLIFrameElement): string {
     try {
-      return iframe.contentWindow?.location.origin || iframe.src || 'unknown';
+      if (iframe.src && iframe.src !== 'about:blank' && iframe.src !== 'about:srcdoc') {
+        return iframe.src;
+      }
+
+      if (iframe.contentDocument) {
+        try {
+          const origin = iframe.contentWindow?.location.origin;
+          if (origin && origin !== 'null') {
+            return origin;
+          }
+        } catch {
+        }
+      }
+
+      return 'unknown';
     } catch {
-      return iframe.src || 'unknown';
+      return 'unknown';
     }
   }
 
   /**
-   * Verifica se um elemento de vídeo existe no DOM
+   * Checks if video element exists no DOM.
    */
   public videoExistsInDOM(videoElement: HTMLVideoElement): boolean {
     return document.body.contains(videoElement) || this.videoExistsInIframes(videoElement);
   }
 
   /**
-   * Verifica se um vídeo existe em algum iframe
+   * Checks if video exists em algum iframe.
    */
   private videoExistsInIframes(videoElement: HTMLVideoElement): boolean {
     const iframes = document.querySelectorAll('iframe');
 
     for (const iframe of iframes) {
       try {
-        const iframeDocument = iframe.contentDocument || iframe.contentWindow?.document;
+        const iframeDocument = this.getAccessibleIframeDocument(iframe);
         if (iframeDocument && iframeDocument.body.contains(videoElement)) {
           return true;
         }
       } catch {
-        // Ignora cross-origin
       }
     }
 
     return false;
+  }
+
+  /**
+   * Safely attempts to get an accessible iframe document.
+   */
+  private getAccessibleIframeDocument(iframe: HTMLIFrameElement): Document | null {
+    try {
+      const doc = iframe.contentDocument;
+
+      if (!doc) {
+        return null;
+      }
+
+      try {
+        const _ = doc.body;
+        return doc;
+      } catch {
+        return null;
+      }
+    } catch {
+      return null;
+    }
   }
 }

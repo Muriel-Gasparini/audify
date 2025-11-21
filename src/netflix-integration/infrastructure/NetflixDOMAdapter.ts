@@ -2,13 +2,8 @@ import { NetflixVideo } from '../domain/entities/NetflixVideo';
 import { ILogger } from '../../shared/infrastructure/logger/ILogger';
 
 /**
- * Netflix DOM Adapter
- * Adapter para o DOM do Netflix
- *
- * Responsabilidades:
- * - Encontrar elementos específicos do Netflix
- * - Encapsular seletores CSS
- */
+   * Netflix-specific DOM adapter.
+   */
 export class NetflixDOMAdapter {
   private static readonly VIDEO_SELECTOR = 'video';
   private static readonly SKIP_INTRO_SELECTOR = '[data-uia="player-skip-intro"]';
@@ -16,9 +11,6 @@ export class NetflixDOMAdapter {
 
   constructor(private readonly logger: ILogger) {}
 
-  /**
-   * Encontra o elemento de vídeo do Netflix
-   */
   public findVideo(): NetflixVideo | null {
     const videoElement = document.querySelector(NetflixDOMAdapter.VIDEO_SELECTOR);
 
@@ -36,9 +28,6 @@ export class NetflixDOMAdapter {
     return video;
   }
 
-  /**
-   * Encontra o botão de pular abertura
-   */
   public findSkipIntroButton(): HTMLElement | null {
     const button = document.querySelector(NetflixDOMAdapter.SKIP_INTRO_SELECTOR);
 
@@ -49,9 +38,6 @@ export class NetflixDOMAdapter {
     return null;
   }
 
-  /**
-   * Encontra o botão de pular recap
-   */
   public findSkipRecapButton(): HTMLElement | null {
     const button = document.querySelector(NetflixDOMAdapter.SKIP_RECAP_SELECTOR);
 
@@ -62,9 +48,6 @@ export class NetflixDOMAdapter {
     return null;
   }
 
-  /**
-   * Clica em um botão se existir
-   */
   public clickButton(button: HTMLElement): void {
     button.click();
     this.logger.info('Button clicked', { selector: button.getAttribute('data-uia') });

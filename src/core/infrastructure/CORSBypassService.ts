@@ -1,15 +1,8 @@
 import { ILogger } from '../../shared/infrastructure/logger/ILogger';
 
 /**
- * CORS Bypass Service
- * Adiciona atributo crossOrigin aos vídeos ANTES deles carregarem
- * para evitar erros CORS no createMediaElementSource
- *
- * Responsabilidades:
- * - Interceptar criação de elementos de vídeo
- * - Adicionar crossorigin="anonymous" antes do carregamento
- * - Monitorar vídeos existentes e novos
- */
+   * CORS Bypass Service.
+   */
 export class CORSBypassService {
   private observer: MutationObserver | null = null;
   private processedVideos = new WeakSet<HTMLVideoElement>();
@@ -17,13 +10,11 @@ export class CORSBypassService {
   constructor(private readonly logger: ILogger) {}
 
   /**
-   * Inicia o monitoramento de vídeos
+   * Starts video monitoring.
    */
   public start(): void {
-    // Processa vídeos existentes
     this.processExistingVideos();
 
-    // Monitora novos vídeos sendo adicionados
     this.observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === 'childList') {
@@ -50,7 +41,7 @@ export class CORSBypassService {
   }
 
   /**
-   * Para o monitoramento
+   * Stops monitoring.
    */
   public stop(): void {
     if (this.observer) {
@@ -61,7 +52,7 @@ export class CORSBypassService {
   }
 
   /**
-   * Processa vídeos já existentes no DOM
+   * Processes existing videos in DOM.
    */
   private processExistingVideos(): void {
     const videos = document.querySelectorAll('video');
@@ -71,12 +62,11 @@ export class CORSBypassService {
       }
     });
 
-    // Também processa vídeos em iframes same-origin
     this.processIframeVideos(document);
   }
 
   /**
-   * Processa um nó e seus descendentes
+   * Processes node and descendants.
    */
   private processNode(node: Node): void {
     if (node instanceof HTMLVideoElement) {
@@ -94,23 +84,25 @@ export class CORSBypassService {
   }
 
   /**
-   * Processa vídeos dentro de iframes (same-origin apenas)
+   * Processes videos inside iframes (same-origin only).
    */
   private processIframeVideos(context: Document | HTMLIFrameElement): void {
     try {
       let iframeDocument: Document | null = null;
 
       if (context instanceof HTMLIFrameElement) {
-        try {
-          iframeDocument = context.contentDocument;
-        } catch {
-          // Cross-origin iframe, não pode acessar
+        iframeDocument = this.getAccessibleIframeDocument(context);
+
+        if (!iframeDocument) {
           return;
         }
       } else {
         const iframes = context.querySelectorAll('iframe');
         iframes.forEach((iframe) => {
-          this.processIframeVideos(iframe);
+          const doc = this.getAccessibleIframeDocument(iframe);
+          if (doc) {
+            this.processIframeVideos(iframe);
+          }
         });
         return;
       }
@@ -124,31 +116,28 @@ export class CORSBypassService {
         }
       });
     } catch (error) {
-      // Ignora erros de acesso a iframes cross-origin
+      if (error instanceof DOMException && error.name === 'SecurityError') {
+        this.logger.debug('SecurityError in CORS bypass - sandboxed or cross-origin iframe');
+      }
     }
   }
 
   /**
-   * Processa um elemento de vídeo individual
+   * Processes individual video element.
    */
   private processVideo(video: HTMLVideoElement): void {
-    // Evita processar o mesmo vídeo múltiplas vezes
     if (this.processedVideos.has(video)) {
       return;
     }
 
     try {
-      // Se o vídeo já tem crossOrigin configurado, não modifica
       if (video.crossOrigin) {
         this.processedVideos.add(video);
         return;
       }
 
-      // Se o vídeo já começou a carregar (readyState > 0), pode ser tarde demais
-      // Mas ainda tentamos para casos onde funciona
       const hadSrc = video.src || video.currentSrc;
 
-      // Define crossOrigin ANTES de qualquer src ser setado (ideal)
       video.crossOrigin = 'anonymous';
       this.processedVideos.add(video);
 
@@ -158,8 +147,6 @@ export class CORSBypassService {
         this.logger.debug('Added crossOrigin to video (before src set)');
       }
 
-      // Se o vídeo já tinha src e não está carregado ainda, força reload
-      // Isso funciona para alguns sites
       if (hadSrc && video.readyState === 0 && video.networkState <= 2) {
         const currentSrc = video.src;
         video.removeAttribute('src');
@@ -173,10 +160,31 @@ export class CORSBypassService {
   }
 
   /**
-   * Tenta aplicar CORS bypass a um vídeo específico
-   * Útil para chamadas manuais quando um vídeo é detectado
+   * Attempts CORS bypass on specific video.
    */
   public applyCORSBypass(video: HTMLVideoElement): void {
     this.processVideo(video);
+  }
+
+  /**
+   * Safely attempts to get an accessible iframe document.
+   */
+  private getAccessibleIframeDocument(iframe: HTMLIFrameElement): Document | null {
+    try {
+      const doc = iframe.contentDocument;
+
+      if (!doc) {
+        return null;
+      }
+
+      try {
+        const _ = doc.body;
+        return doc;
+      } catch {
+        return null;
+      }
+    } catch {
+      return null;
+    }
   }
 }
