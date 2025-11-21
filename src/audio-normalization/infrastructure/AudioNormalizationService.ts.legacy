@@ -1,3 +1,4 @@
+import { IAudioNormalizationService } from '../application/ports/IAudioNormalizationService';
 import { WebAudioAdapter } from './web-audio/WebAudioAdapter';
 import { AudioProcessor } from '../domain/entities/AudioProcessor';
 import { AudioConfig } from '../domain/value-objects/AudioConfig';
@@ -6,11 +7,9 @@ import { ILogger } from '../../shared/infrastructure/logger/ILogger';
 import { DomainEventPublisher } from '../../shared/domain/events/DomainEventPublisher';
 import { NormalizerActivatedEvent } from '../../shared/domain/events/NormalizerActivatedEvent';
 import { ConfigurationChangedEvent } from '../../shared/domain/events/ConfigurationChangedEvent';
+import { AudioProcessingConstants } from '../domain/constants/AudioProcessingConstants';
 
-/**
-   * Orchestrates audio normalization lifecycle and processing.
-   */
-export class AudioNormalizationService {
+export class AudioNormalizationService implements IAudioNormalizationService {
   private processor: AudioProcessor;
   private adapter: WebAudioAdapter;
   private isActive: boolean = false;
@@ -19,7 +18,6 @@ export class AudioNormalizationService {
   private seekingListener: (() => void) | null = null;
   private videoRemovalObserver: MutationObserver | null = null;
   private lastNormalizationTime: number = 0;
-  private readonly NORMALIZATION_INTERVAL_MS: number = 50;
 
   constructor(
     initialConfig: AudioConfig,
@@ -37,12 +35,12 @@ export class AudioNormalizationService {
   public attachToVideo(video: HTMLVideoElement): void {
     if (this.currentVideo === video && this.adapter.isInitialized()) {
       this.logger.info('Already attached to this video');
-      console.log('[AudioNormalizationService] attachToVideo - Already attached, skipping');
+      this.logger.debug('attachToVideo - Already attached, skipping');
       return;
     }
 
     this.logger.info('Attaching to video element');
-    console.log('[AudioNormalizationService] attachToVideo - NEW ATTACHMENT:', {
+    this.logger.debug('attachToVideo - NEW ATTACHMENT:', {
       videoSrc: video.src || video.currentSrc,
       videoReadyState: video.readyState,
       videoConnected: video.isConnected,
@@ -53,7 +51,7 @@ export class AudioNormalizationService {
     });
 
     if (this.currentVideo !== video) {
-      console.log('[AudioNormalizationService] attachToVideo - Soft detaching from previous video (preserving AudioContext)');
+      this.logger.debug('attachToVideo - Soft detaching from previous video (preserving AudioContext)');
       this.detachFromVideo();
     }
 
@@ -61,7 +59,7 @@ export class AudioNormalizationService {
 
     try {
       this.adapter.attachToVideo(video);
-      console.log('[AudioNormalizationService] attachToVideo - After attachment, adapter initialized:', this.adapter.isInitialized());
+      this.logger.debug('attachToVideo - After attachment, adapter initialized:', this.adapter.isInitialized());
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const isSourceNodeConflict = errorMessage.includes('already has') ||
@@ -69,23 +67,23 @@ export class AudioNormalizationService {
                                    errorMessage.includes('already being used');
 
       if (isSourceNodeConflict) {
-        console.warn('[AudioNormalizationService] MediaElementSource conflict detected - cleaning up and retrying once');
+        this.logger.warn('MediaElementSource conflict detected - cleaning up and retrying once');
         this.logger.warn('MediaElementSource conflict detected, attempting recovery with cleanup and retry');
 
         try {
           this.adapter.cleanup();
-          console.log('[AudioNormalizationService] Retrying attachment after cleanup...');
+          this.logger.debug('Retrying attachment after cleanup...');
           this.adapter.attachToVideo(video);
-          console.log('[AudioNormalizationService] RETRY SUCCESSFUL - adapter initialized:', this.adapter.isInitialized());
+          this.logger.debug('RETRY SUCCESSFUL - adapter initialized:', this.adapter.isInitialized());
           this.logger.info('Successfully attached after MediaElementSource conflict recovery');
         } catch (retryError) {
-          console.error('[AudioNormalizationService] RETRY FAILED after cleanup:', retryError);
+          this.logger.error('RETRY FAILED after cleanup:', retryError);
           this.logger.error('Failed to attach even after cleanup and retry', retryError);
           this.currentVideo = null;
           throw retryError;
         }
       } else {
-        console.error('[AudioNormalizationService] FAILED to attach adapter to video:', error);
+        this.logger.error('FAILED to attach adapter to video:', error);
         this.logger.error('Failed to attach adapter to video', error);
         this.currentVideo = null;
         throw error;
@@ -93,10 +91,10 @@ export class AudioNormalizationService {
     }
 
     if (this.isActive) {
-      console.log('[AudioNormalizationService] Normalizer is ACTIVE - connecting in ACTIVE mode (full processing)');
+      this.logger.debug('Normalizer is ACTIVE - connecting in ACTIVE mode (full processing)');
       this.adapter.setActive(true);
     } else {
-      console.log('[AudioNormalizationService] Normalizer is INACTIVE - connecting in BYPASS mode (direct audio)');
+      this.logger.debug('Normalizer is INACTIVE - connecting in BYPASS mode (direct audio)');
       this.adapter.setActive(false);
     }
 
@@ -109,7 +107,7 @@ export class AudioNormalizationService {
       for (const mutation of mutations) {
         for (const node of mutation.removedNodes) {
           if (node === video || (node instanceof Element && node.contains(video))) {
-            console.log('[AudioNormalizationService] VIDEO REMOVED FROM DOM!', {
+            this.logger.warn('VIDEO REMOVED FROM DOM!', {
               videoSrc: video.src || video.currentSrc,
               wasActive: this.isActive
             });
@@ -129,7 +127,7 @@ export class AudioNormalizationService {
     }
 
     if (this.isActive) {
-      console.log('[AudioNormalizationService] Starting normalization loop (normalizer is active)');
+      this.logger.debug('Starting normalization loop (normalizer is active)');
       this.normalize();
     }
   }
@@ -146,7 +144,7 @@ export class AudioNormalizationService {
     this.isActive = true;
 
     if (this.adapter.isInitialized()) {
-      console.log('[AudioNormalizationService] activate() - Switching from BYPASS to ACTIVE mode');
+      this.logger.debug('activate() - Switching from BYPASS to ACTIVE mode');
       this.adapter.setActive(true);
       this.adapter.resume();
 
@@ -176,7 +174,7 @@ export class AudioNormalizationService {
     }
 
     if (this.adapter.isInitialized()) {
-      console.log('[AudioNormalizationService] deactivate() - Switching from ACTIVE to BYPASS mode (audio preserved)');
+      this.logger.debug('deactivate() - Switching from ACTIVE to BYPASS mode (audio preserved)');
       this.adapter.setActive(false);
     }
 
@@ -223,7 +221,7 @@ export class AudioNormalizationService {
     const isVideoInDOM = this.currentVideo?.isConnected ?? false;
     const result = hasVideo && isAdapterInit && isVideoInDOM;
 
-    console.log('[AudioNormalizationService] hasVideoAttached() check:', {
+    this.logger.debug('hasVideoAttached() check:', {
       currentVideo: this.currentVideo ? 'EXISTS' : 'NULL',
       videoInDOM: isVideoInDOM,
       adapterInitialized: isAdapterInit,
@@ -231,7 +229,7 @@ export class AudioNormalizationService {
     });
 
     if (hasVideo && !isVideoInDOM) {
-      console.warn('[AudioNormalizationService] Video element detached from DOM (will be handled by caller)');
+      this.logger.warn('Video element detached from DOM (will be handled by caller)');
       this.logger.warn('Video element no longer in DOM - reporting false to caller');
     }
 
@@ -246,40 +244,6 @@ export class AudioNormalizationService {
     return this.isActive;
   }
 
-  /**
-   * @deprecated Use activate() instead
-   */
-  private start(): void {
-    if (!this.adapter.isInitialized()) {
-      this.logger.warn('Cannot start: adapter not initialized');
-      return;
-    }
-
-    this.adapter.resume();
-    this.adapter.setActive(true);
-
-    if (!this.animationFrameId) {
-      this.normalize();
-    }
-
-    this.logger.info('Normalization started');
-  }
-
-  /**
-   * @deprecated Use deactivate() instead
-   */
-  private stop(): void {
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
-    }
-
-    if (this.adapter.isInitialized()) {
-      this.adapter.setActive(false);
-    }
-
-    this.logger.info('Normalization stopped');
-  }
 
   private normalize = (): void => {
     if (!this.isActive) {
@@ -289,11 +253,11 @@ export class AudioNormalizationService {
     const now = performance.now();
     const timeSinceLastUpdate = now - this.lastNormalizationTime;
 
-    if (timeSinceLastUpdate >= this.NORMALIZATION_INTERVAL_MS) {
+    if (timeSinceLastUpdate >= AudioProcessingConstants.NORMALIZATION_INTERVAL_MS) {
       try {
         const metrics = this.adapter.getMetrics();
         const nextGain = this.processor.calculateNextGain(metrics);
-        this.adapter.setGainSmooth(nextGain, 0.1);
+        this.adapter.setGainSmooth(nextGain, AudioProcessingConstants.GAIN_SMOOTHING_NORMAL);
         this.lastNormalizationTime = now;
       } catch (error) {
         this.logger.error('Error in normalization loop', error);
@@ -311,7 +275,7 @@ export class AudioNormalizationService {
     const currentGain = this.adapter.getCurrentGain();
     const resetGain = this.processor.calculateResetGain(currentGain);
 
-    this.adapter.setGainSmooth(resetGain, 0.05);
+    this.adapter.setGainSmooth(resetGain, AudioProcessingConstants.GAIN_SMOOTHING_SEEK_RESET);
     this.logger.info(`Video seeking detected, resetting gain to ${resetGain.toString()}`);
   }
 
@@ -319,9 +283,16 @@ export class AudioNormalizationService {
    * Detaches from current video without destroying AudioContext.
    */
   private detachFromVideo(): void {
-    console.log('[AudioNormalizationService] detachFromVideo() - soft detach (keeping AudioContext alive)');
+    this.logger.debug('detachFromVideo() - soft detach (keeping AudioContext alive)');
 
-    this.stop();
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    if (this.adapter.isInitialized()) {
+      this.adapter.setActive(false);
+    }
 
     if (this.currentVideo && this.seekingListener) {
       this.currentVideo.removeEventListener('seeking', this.seekingListener);
@@ -342,7 +313,7 @@ export class AudioNormalizationService {
    * Destroys all resources including AudioContext.
    */
   public cleanup(): void {
-    console.log('[AudioNormalizationService] cleanup() called - FULL TEARDOWN', {
+    this.logger.debug('cleanup() called - FULL TEARDOWN', {
       hadVideo: this.currentVideo !== null,
       wasActive: this.isActive,
       stackTrace: new Error().stack
