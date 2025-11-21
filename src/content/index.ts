@@ -38,20 +38,11 @@ function isTopFrame(): boolean {
 
 if (!isValidExecutionContext()) {
 } else {
-  const frameType = isTopFrame() ? 'TOP FRAME' : 'IFRAME';
-  console.log(`[Netfrix] Content script loaded in ${frameType} - starting initialization`);
-
   (async () => {
     try {
-      console.log('[Netfrix] Creating ContentScriptFacade...');
       const facade = new ContentScriptFacade();
-
-      console.log('[Netfrix] Initializing facade...');
       await facade.initialize();
-
-      console.log('[Netfrix] Initialization completed successfully!');
     } catch (error) {
-      console.error('[Netfrix] Fatal error during initialization:', error);
     }
   })();
 }

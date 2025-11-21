@@ -75,7 +75,7 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
         const config = await this.container.getConfigRepository().load();
         const isActive = service.isNormalizerActive();
 
-        console.log('[ContentScriptFacade] Video health check:', {
+        logger.debug('Video health check:', {
           hasVideo: hasVideo,
           configIsActive: config.isActive,
           normalizerIsActive: isActive,
@@ -87,15 +87,15 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
 
         if (isHealthy) {
           if (this.consecutiveHealthCheckFailures > 0) {
-            console.log('[ContentScriptFacade] Video health restored, resetting failure counter');
+            logger.debug('Video health restored, resetting failure counter');
             this.consecutiveHealthCheckFailures = 0;
           }
         } else {
           this.consecutiveHealthCheckFailures++;
-          console.warn(`[ContentScriptFacade] Video health check failed (${this.consecutiveHealthCheckFailures}/${this.MAX_CONSECUTIVE_FAILURES})`);
+          logger.warn(`Video health check failed (${this.consecutiveHealthCheckFailures}/${this.MAX_CONSECUTIVE_FAILURES})`);
 
           if (this.consecutiveHealthCheckFailures >= this.MAX_CONSECUTIVE_FAILURES) {
-            console.error('[ContentScriptFacade] Video health check: PERSISTENT FAILURE - forcing rediscovery');
+            logger.error('Video health check: PERSISTENT FAILURE - forcing rediscovery');
             logger.warn(`Video lost for ${this.MAX_CONSECUTIVE_FAILURES} consecutive checks - forcing rediscovery`);
 
             this.consecutiveHealthCheckFailures = 0;
@@ -121,7 +121,7 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
    */
   public onVideoDiscovered(video: GenericVideo): void {
     if (this.isShuttingDown) {
-      console.log('[ContentScriptFacade] Ignoring video discovery - shutting down');
+      this.container.getLogger().debug('Ignoring video discovery - shutting down');
       return;
     }
 
@@ -133,16 +133,16 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
     const isVideoInDOM = element.isConnected;
 
     if (alreadyInSet && isVideoInDOM) {
-      console.log('[ContentScriptFacade] onVideoDiscovered - Video already in attachedVideos WeakSet AND in DOM, skipping');
+      logger.debug('onVideoDiscovered - Video already in attachedVideos WeakSet AND in DOM, skipping');
       return;
     }
 
     if (alreadyInSet && !isVideoInDOM) {
-      console.log('[ContentScriptFacade] onVideoDiscovered - Video was in WeakSet but NOT in DOM anymore (stale reference)');
+      logger.debug('onVideoDiscovered - Video was in WeakSet but NOT in DOM anymore (stale reference)');
     }
 
     const currentHasVideo = service.hasVideoAttached();
-    console.log('[ContentScriptFacade] onVideoDiscovered - Video discovery triggered:', {
+    logger.debug('onVideoDiscovered - Video discovery triggered:', {
       videoSrc: video.getSrc(),
       isInIframe: video.isInIframe(),
       alreadyInSet: alreadyInSet,
@@ -152,7 +152,7 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
     });
 
     if (currentHasVideo) {
-      console.log('[ContentScriptFacade] Already have a video attached - this is likely a re-attachment after forceDiscovery()');
+      logger.debug('Already have a video attached - this is likely a re-attachment after forceDiscovery()');
     }
 
     this.attachedVideos.add(element);
@@ -195,7 +195,7 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
     this.isShuttingDown = true;
 
     const logger = this.container?.getLogger();
-    console.error(`[ContentScriptFacade] ${reason} - shutting down gracefully`);
+    logger?.error(`${reason} - shutting down gracefully`);
 
     if (error) {
       logger?.error(`${reason}`, error);
@@ -216,7 +216,7 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
     if (this.videoMonitorInterval !== null) {
       clearInterval(this.videoMonitorInterval);
       this.videoMonitorInterval = null;
-      console.log('[ContentScriptFacade] Video health monitor stopped');
+      logger?.debug('Video health monitor stopped');
     }
 
     try {
@@ -231,7 +231,7 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
 
       this.messageRouter?.stopListening();
     } catch (cleanupError) {
-      console.error('[ContentScriptFacade] Error during cleanup:', cleanupError);
+      logger?.error('Error during cleanup:', cleanupError);
     }
 
     logger?.info('Content script facade cleaned up');

@@ -5,6 +5,7 @@ import { GetStateCommand } from '../shared/infrastructure/messaging/commands/Get
 import { ToggleNormalizerCommand } from '../shared/infrastructure/messaging/commands/ToggleNormalizerCommand';
 import { GetSiteInfoCommand } from '../shared/infrastructure/messaging/commands/GetSiteInfoCommand';
 import { ILogger } from '../shared/infrastructure/logger/ILogger';
+import { ChromeContextUtil } from '../shared/infrastructure/chrome/ChromeContextUtil';
 
 /**
    * Message Router.
@@ -17,9 +18,6 @@ export class MessageRouter {
     private readonly logger: ILogger
   ) {}
 
-  /**
-   * Starts escuta de mensagens.
-   */
   public listen(): void {
     if (!this.isExtensionContextValid()) {
       this.logger.error('Cannot register message listener - extension context invalidated');
@@ -56,9 +54,6 @@ export class MessageRouter {
     this.logger.info(`[${frameInfo}] Message router listening - listener registered successfully`);
   }
 
-  /**
-   * Stops a escuta de mensagens.
-   */
   public stopListening(): void {
     if (this.listener) {
       try {
@@ -99,7 +94,7 @@ export class MessageRouter {
       response = { config: result };
     } else if (command.type === 'GET_STATE') {
       response = { state: result };
-      console.log('[MessageRouter] GET_STATE - Preparing response with state:', result);
+      this.logger.debug('GET_STATE - Preparing response with state:', result);
     } else if (command.type === 'GET_SITE_INFO') {
       response = { siteInfo: result };
     } else {
@@ -118,7 +113,6 @@ export class MessageRouter {
       case 'GET_CONFIG':
         return new GetConfigCommand();
 
-      case 'SET_CONFIG':
       case 'UPDATE_CONFIG':
         return new UpdateConfigCommand(message.data);
 
@@ -137,14 +131,7 @@ export class MessageRouter {
     }
   }
 
-  /**
-   * Check if extension context is valid.
-   */
   private isExtensionContextValid(): boolean {
-    try {
-      return Boolean(chrome?.runtime?.id);
-    } catch {
-      return false;
-    }
+    return ChromeContextUtil.isExtensionContextValid();
   }
 }
