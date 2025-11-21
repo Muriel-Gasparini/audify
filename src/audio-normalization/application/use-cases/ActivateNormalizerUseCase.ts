@@ -1,17 +1,13 @@
-import { AudioNormalizationService } from '../../infrastructure/AudioNormalizationService';
+import { IAudioNormalizationService } from '../ports/IAudioNormalizationService';
 import { ILogger } from '../../../shared/infrastructure/logger/ILogger';
 
 export type ActivationResult =
   | { success: true }
   | { success: false; reason: 'NO_VIDEO' | 'ALREADY_ACTIVE' };
 
-/**
-   * Activates audio normalizer with validation.
-   * @returns {ActivationResult} Operation result with success status or failure reason
-   */
 export class ActivateNormalizerUseCase {
   constructor(
-    private readonly service: AudioNormalizationService,
+    private readonly service: IAudioNormalizationService,
     private readonly logger: ILogger
   ) {}
 

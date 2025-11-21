@@ -1,12 +1,9 @@
-import { AudioNormalizationService } from '../../infrastructure/AudioNormalizationService';
+import { IAudioNormalizationService } from '../ports/IAudioNormalizationService';
 import { ILogger } from '../../../shared/infrastructure/logger/ILogger';
 
-/**
-   * Deactivates audio normalizer.
-   */
 export class DeactivateNormalizerUseCase {
   constructor(
-    private readonly service: AudioNormalizationService,
+    private readonly service: IAudioNormalizationService,
     private readonly logger: ILogger
   ) {}
 
