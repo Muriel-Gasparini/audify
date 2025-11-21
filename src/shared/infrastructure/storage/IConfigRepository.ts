@@ -1,20 +1,9 @@
-/**
-   * Normalizer configuration model.
-   */
-export interface NormalizerConfig {
-  targetLevel: number;
-  maxGain: number;
-  minGain: number;
-  isActive: boolean;
-}
+import { AudioConfig } from '../../../audio-normalization/domain/value-objects/AudioConfig';
 
-/**
-   * Configuration repository port.
-   */
 export interface IConfigRepository {
-  load(): Promise<NormalizerConfig>;
+  load(): Promise<AudioConfig>;
 
-  save(config: NormalizerConfig): Promise<void>;
+  save(config: AudioConfig): Promise<void>;
 
-  update(partialConfig: Partial<NormalizerConfig>): Promise<NormalizerConfig>;
+  update(partialConfig: Partial<AudioConfig>): Promise<AudioConfig>;
 }
