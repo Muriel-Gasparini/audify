@@ -2,6 +2,49 @@
 
 Browser extension that applies real-time audio normalization to video elements across any website.
 
+## Installation
+
+### Production Release (Recommended)
+
+[![Latest Release](https://img.shields.io/github/v/release/Muriel-Gasparini/audify?style=for-the-badge&logo=github)](https://github.com/Muriel-Gasparini/audify/releases/latest)
+
+**[→ Download Latest Release](https://github.com/Muriel-Gasparini/audify/releases/latest)**
+
+1. Click the download link above and download the `audify-vX.X.X.zip` file from the latest release
+2. Extract the ZIP file to a permanent location on your computer
+3. Open your browser and navigate to the extensions page:
+   - **Chrome**: `chrome://extensions/`
+   - **Edge**: `edge://extensions/`
+   - **Brave**: `brave://extensions/`
+4. Enable **Developer mode** (toggle in the top-right corner)
+5. Click **Load unpacked**
+6. Select the extracted folder containing the extension files
+7. The extension is now installed and ready to use
+
+**Important**: Keep the extracted folder in place. Moving or deleting it will break the extension.
+
+### Development Setup
+
+```bash
+yarn install
+yarn build
+```
+
+The built extension will be in the `dist/` directory. Follow the same loading steps above, selecting the `dist/` folder instead.
+
+## Usage
+
+The extension activates automatically when video elements are detected. Click the extension icon to access controls:
+
+![Audify Extension Interface](./examples/audify.png)
+
+**Toggle**: Enable or disable normalization
+**Target Level**: Desired RMS volume (0.02 to 0.3)
+**Max Gain**: Maximum amplification limit (1.0 to 8.0)
+**Min Gain**: Minimum attenuation limit (0.1 to 1.0)
+
+Configuration is stored in chrome.storage.local and persists across sessions.
+
 ## Technical Overview
 
 Web videos often have inconsistent audio levels between content, causing constant manual volume adjustments. This extension solves that by intercepting the audio stream through the Web Audio API and applying dynamic compression and gain adjustment in real-time.
@@ -65,49 +108,6 @@ clampedGain = clamp(targetGain, minGain, maxGain)
 Gain changes are smoothed using exponentialRampToValueAtTime to prevent audible clicks. The smoothing time constant varies based on whether the adjustment is increasing or decreasing volume, with faster response for volume increases to prevent clipping.
 
 When the user seeks within the video, gain is reset to a mid-point to handle potential volume changes in the new section.
-
-## Installation
-
-### Production Release (Recommended)
-
-[![Latest Release](https://img.shields.io/github/v/release/Muriel-Gasparini/audify?style=for-the-badge&logo=github)](https://github.com/Muriel-Gasparini/audify/releases/latest)
-
-**[→ Download Latest Release](https://github.com/Muriel-Gasparini/audify/releases/latest)**
-
-1. Click the download link above and download the `audify-vX.X.X.zip` file from the latest release
-2. Extract the ZIP file to a permanent location on your computer
-3. Open your browser and navigate to the extensions page:
-   - **Chrome**: `chrome://extensions/`
-   - **Edge**: `edge://extensions/`
-   - **Brave**: `brave://extensions/`
-4. Enable **Developer mode** (toggle in the top-right corner)
-5. Click **Load unpacked**
-6. Select the extracted folder containing the extension files
-7. The extension is now installed and ready to use
-
-**Important**: Keep the extracted folder in place. Moving or deleting it will break the extension.
-
-### Development Setup
-
-```bash
-yarn install
-yarn build
-```
-
-The built extension will be in the `dist/` directory. Follow the same loading steps above, selecting the `dist/` folder instead.
-
-## Usage
-
-The extension activates automatically when video elements are detected. Click the extension icon to access controls:
-
-![Audify Extension Interface](./examples/audify.png)
-
-**Toggle**: Enable or disable normalization
-**Target Level**: Desired RMS volume (0.02 to 0.3)
-**Max Gain**: Maximum amplification limit (1.0 to 8.0)
-**Min Gain**: Minimum attenuation limit (0.1 to 1.0)
-
-Configuration is stored in chrome.storage.local and persists across sessions.
 
 ## Technical Stack
 
