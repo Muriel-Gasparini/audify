@@ -59,4 +59,8 @@ export class WebAudioAdapter {
   public isInitialized(): boolean {
     return this.graphBuilder.isInitialized();
   }
+
+  public hasMediaElement(): boolean {
+    return this.graphBuilder.hasMediaElement();
+  }
 }

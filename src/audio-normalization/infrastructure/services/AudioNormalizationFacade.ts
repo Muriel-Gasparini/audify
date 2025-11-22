@@ -19,6 +19,8 @@ export class AudioNormalizationFacade implements IAudioNormalizationService {
   private readonly normalizationLoop: NormalizationLoop;
   private readonly stateManager: NormalizerStateManager;
   private readonly eventPublisher: EventPublisherService;
+  private lastSeekingTime: number = 0;
+  private readonly SEEKING_DEBOUNCE_MS = 500;
 
   constructor(
     initialConfig: AudioConfig,
@@ -49,7 +51,9 @@ export class AudioNormalizationFacade implements IAudioNormalizationService {
       video,
       this.stateManager.isNormalizerActive(),
       () => this.handleSeeking(),
-      () => this.logger.warn('Video removed from DOM - handled by caller')
+      () => this.logger.warn('Video removed from DOM - handled by caller'),
+      () => this.handlePlay(),
+      () => this.handleUserGesture()
     );
 
     this.stateManager.startLoopIfActive();
@@ -87,26 +91,43 @@ export class AudioNormalizationFacade implements IAudioNormalizationService {
   }
 
   public cleanup(): void {
-    this.logger.debug('cleanup() called - FULL TEARDOWN', {
-      wasActive: this.stateManager.isNormalizerActive(),
-    });
-
     this.stateManager.deactivate();
     this.attachmentManager.cleanup();
     this.adapter.cleanup();
+    this.logger.info('AudioNormalizationFacade cleaned up');
+  }
 
-    this.logger.info('AudioNormalizationFacade fully cleaned up (AudioContext destroyed)');
+  private handleUserGesture(): void {
+    this.adapter.resume().catch((error) => {
+      this.logger.error('Failed to initialize AudioContext on click', error);
+    });
+  }
+
+  private handlePlay(): void {
+    this.adapter.resume().catch((error) => {
+      this.logger.warn('Failed to initialize/resume AudioContext on play', error);
+    });
   }
 
   private handleSeeking(): void {
+    const now = Date.now();
+    if (now - this.lastSeekingTime < this.SEEKING_DEBOUNCE_MS) {
+      return;
+    }
+    this.lastSeekingTime = now;
+
     if (!this.stateManager.isNormalizerActive() || !this.adapter.isInitialized()) {
       return;
     }
 
-    const currentGain = this.adapter.getCurrentGain();
-    const resetGain = this.processor.calculateResetGain(currentGain);
+    try {
+      const currentGain = this.adapter.getCurrentGain();
+      const resetGain = this.processor.calculateResetGain(currentGain);
 
-    this.adapter.setGainSmooth(resetGain, AudioProcessingConstants.GAIN_SMOOTHING_SEEK_RESET);
-    this.logger.info(`Video seeking detected, resetting gain to ${resetGain.toString()}`);
+      this.adapter.setGainSmooth(resetGain, AudioProcessingConstants.GAIN_SMOOTHING_SEEK_RESET);
+      this.logger.info(`Seeking - resetting gain to ${resetGain.toString()}`);
+    } catch (error) {
+      this.logger.error('Error handling seeking', error);
+    }
   }
 }
