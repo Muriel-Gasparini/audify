@@ -1,12 +1,9 @@
 import { ILogger } from './ILogger';
 
-/**
-   * Implementation of Logger using console.
-   */
 export class ConsoleLogger implements ILogger {
   private readonly prefix: string;
 
-  constructor(prefix: string = '[Netfrix]') {
+  constructor(prefix: string = '[Audify]') {
     this.prefix = prefix;
   }
 

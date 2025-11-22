@@ -45,7 +45,7 @@ export class ChromeStorageConfigRepository implements IConfigRepository {
     }
 
     try {
-      const result = await chrome.storage.sync.get([STORAGE_KEY]);
+      const result = await chrome.storage.local.get([STORAGE_KEY]);
       const storedConfig = result[STORAGE_KEY] as StoredConfig | undefined;
 
       if (!storedConfig) {
@@ -108,7 +108,7 @@ export class ChromeStorageConfigRepository implements IConfigRepository {
 
     try {
       const storedConfig = config.toPrimitives();
-      await chrome.storage.sync.set({ [STORAGE_KEY]: storedConfig });
+      await chrome.storage.local.set({ [STORAGE_KEY]: storedConfig });
       this.logger.debug('Config saved to storage', storedConfig);
       this.updateCache(config);
     } catch (error) {

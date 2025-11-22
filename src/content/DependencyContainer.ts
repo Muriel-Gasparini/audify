@@ -48,7 +48,7 @@ export class DependencyContainer {
   private messageBus!: MessageBus;
 
   public async initialize(): Promise<void> {
-    this.logger = new ConsoleLogger('[Netfrix]');
+    this.logger = new ConsoleLogger('[Audify]');
     this.configRepository = new ChromeStorageConfigRepository(this.logger);
     this.eventPublisher = DomainEventPublisher.getInstance();
 
