@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build production bundle
+        run: yarn build
+
+      - name: Create distribution archive
+        run: |
+          cd dist
+          zip -r ../audify-${{ github.ref_name }}.zip .
+          cd ..
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          if [ "${{ github.ref_name }}" = "v2.0.0" ]; then
+            echo "## Initial Release" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "First production release of Audify." >> CHANGELOG.md
+          else
+            PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -A1 "${{ github.ref_name }}" | tail -n1)
+            if [ -z "$PREVIOUS_TAG" ]; then
+              PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+            fi
+
+            echo "# Changelog" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+
+            git log ${PREVIOUS_TAG}..${{ github.ref_name }} --pretty=format:"%s" --reverse | while read line; do
+              TYPE=$(echo "$line" | sed -n 's/^\([a-z]*\)(\([^)]*\)): .*/\1/p')
+              SCOPE=$(echo "$line" | sed -n 's/^\([a-z]*\)(\([^)]*\)): .*/\2/p')
+              MSG=$(echo "$line" | sed -n 's/^[a-z]*([^)]*): \(.*\)/\1/p')
+
+              if [ -z "$TYPE" ]; then
+                TYPE=$(echo "$line" | sed -n 's/^\([a-z]*\): .*/\1/p')
+                MSG=$(echo "$line" | sed -n 's/^[a-z]*: \(.*\)/\1/p')
+                SCOPE=""
+              fi
+
+              case "$TYPE" in
+                feat)
+                  SECTION="### Features"
+                  ;;
+                fix)
+                  SECTION="### Bug Fixes"
+                  ;;
+                perf)
+                  SECTION="### Performance"
+                  ;;
+                refactor)
+                  SECTION="### Refactoring"
+                  ;;
+                build)
+                  SECTION="### Build System"
+                  ;;
+                chore)
+                  SECTION="### Chores"
+                  ;;
+                docs)
+                  SECTION="### Documentation"
+                  ;;
+                style)
+                  SECTION="### Style"
+                  ;;
+                test)
+                  SECTION="### Tests"
+                  ;;
+                ci)
+                  SECTION="### CI/CD"
+                  ;;
+                *)
+                  SECTION="### Other"
+                  ;;
+              esac
+
+              if ! grep -q "^$SECTION" CHANGELOG.md; then
+                echo "" >> CHANGELOG.md
+                echo "$SECTION" >> CHANGELOG.md
+                echo "" >> CHANGELOG.md
+              fi
+
+              if [ -n "$SCOPE" ]; then
+                echo "- **$SCOPE**: $MSG" >> CHANGELOG.md
+              else
+                echo "- $MSG" >> CHANGELOG.md
+              fi
+            done
+          fi
+
+          cat CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG.md
+          files: audify-${{ github.ref_name }}.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

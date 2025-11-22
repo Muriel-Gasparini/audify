@@ -68,26 +68,31 @@ When the user seeks within the video, gain is reset to a mid-point to handle pot
 
 ## Installation
 
+### Production Release (Recommended)
+
+[![Latest Release](https://img.shields.io/github/v/release/Muriel-Gasparini/audify?label=Download&style=for-the-badge)](https://github.com/Muriel-Gasparini/audify/releases/latest)
+
+1. Download the latest `audify-vX.X.X.zip` from the [releases page](https://github.com/Muriel-Gasparini/audify/releases/latest)
+2. Extract the ZIP file to a permanent location on your computer
+3. Open your browser and navigate to the extensions page:
+   - **Chrome**: `chrome://extensions/`
+   - **Edge**: `edge://extensions/`
+   - **Brave**: `brave://extensions/`
+4. Enable **Developer mode** (toggle in the top-right corner)
+5. Click **Load unpacked**
+6. Select the extracted folder containing the extension files
+7. The extension is now installed and ready to use
+
+**Important**: Keep the extracted folder in place. Moving or deleting it will break the extension.
+
 ### Development Setup
 
 ```bash
-npm install
-npm run build
+yarn install
+yarn build
 ```
 
-### Loading the Extension
-
-Chrome:
-1. Navigate to chrome://extensions/
-2. Enable Developer mode
-3. Click "Load unpacked"
-4. Select the project directory
-
-Edge:
-1. Navigate to edge://extensions/
-2. Enable Developer mode
-3. Click "Load unpacked"
-4. Select the project directory
+The built extension will be in the `dist/` directory. Follow the same loading steps above, selecting the `dist/` folder instead.
 
 ## Usage
 
