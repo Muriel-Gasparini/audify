@@ -41,6 +41,11 @@ export class NormalizationLoop {
       return;
     }
 
+    if (!this.adapter.isInitialized()) {
+      this.animationFrameId = requestAnimationFrame(this.normalize);
+      return;
+    }
+
     const now = performance.now();
     const timeSinceLastUpdate = now - this.lastNormalizationTime;
 
