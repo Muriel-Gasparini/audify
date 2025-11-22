@@ -54,7 +54,7 @@ export class PopupMessagingService {
           chrome.tabs.sendMessage(
             activeTab.id,
             message,
-            { frameId: undefined },
+            { frameId: 0 },
             async (response: T) => {
               const lastError = chrome.runtime.lastError;
 
