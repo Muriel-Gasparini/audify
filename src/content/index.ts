@@ -28,14 +28,6 @@ function isValidExecutionContext(): boolean {
   return true;
 }
 
-function isTopFrame(): boolean {
-  try {
-    return window.self === window.top;
-  } catch {
-    return false;
-  }
-}
-
 if (!isValidExecutionContext()) {
 } else {
   (async () => {

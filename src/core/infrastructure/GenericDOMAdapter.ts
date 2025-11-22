@@ -172,7 +172,7 @@ export class GenericDOMAdapter {
       }
 
       try {
-        const _ = doc.body;
+        void doc.body;
         return doc;
       } catch {
         return null;
