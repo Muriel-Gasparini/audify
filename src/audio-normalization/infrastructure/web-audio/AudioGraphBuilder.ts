@@ -17,6 +17,7 @@ export class AudioGraphBuilder {
   private compressorNodeWrapper: CompressorNodeWrapper | null = null;
   private limiterNodeWrapper: LimiterNodeWrapper | null = null;
   private analyserNodeWrapper: AnalyserNodeWrapper | null = null;
+  private currentMediaElement: HTMLVideoElement | null = null;
 
   private activeStrategy: ActiveProcessingStrategy = new ActiveProcessingStrategy();
   private bypassStrategy: BypassProcessingStrategy = new BypassProcessingStrategy();
@@ -27,14 +28,35 @@ export class AudioGraphBuilder {
    * Initializes o grafo audio com element video.
    */
   public initialize(mediaElement: HTMLVideoElement): void {
-    if (this.audioContext) {
-      this.logger.warn('Audio graph already initialized, cleaning up first');
-      this.logger.debug('Already initialized, cleaning up');
-      this.cleanup();
+    if (this.audioContext && this.currentMediaElement === mediaElement) {
+      this.logger.debug('Already initialized with same media element, skipping');
+      return;
+    }
+
+    if (this.audioContext && this.currentMediaElement) {
+      const isCurrentVideoInDOM = this.currentMediaElement.isConnected;
+      const currentSrc = this.currentMediaElement.currentSrc || this.currentMediaElement.src;
+      const newSrc = mediaElement.currentSrc || mediaElement.src;
+
+      if (!isCurrentVideoInDOM) {
+        this.logger.warn('Current video element no longer in DOM, cleaning up before re-initialization');
+        this.cleanupSync();
+      } else if (currentSrc && newSrc && currentSrc === newSrc) {
+        this.logger.debug('Different element but same video source, updating reference');
+        this.currentMediaElement = mediaElement;
+        return;
+      } else {
+        this.logger.warn('Audio graph already initialized with different video, cleaning up first');
+        this.cleanupSync();
+      }
     }
 
     try {
-      this.logger.debug('Starting initialization...');
+      this.logger.debug('Starting initialization...', {
+        videoSrc: mediaElement.src || mediaElement.currentSrc,
+        videoConnected: mediaElement.isConnected,
+        hadPreviousContext: this.audioContext !== null
+      });
 
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       this.audioContext = new AudioContextClass();
@@ -55,11 +77,16 @@ export class AudioGraphBuilder {
       const analyserNode = this.audioContext.createAnalyser();
       this.analyserNodeWrapper = new AnalyserNodeWrapper(analyserNode);
 
+      this.currentMediaElement = mediaElement;
+
       this.logger.debug('All nodes created successfully');
       this.logger.info('Audio graph initialized successfully');
     } catch (error) {
       this.logger.error('CRITICAL ERROR during initialization:', error);
       this.logger.error('Failed to initialize audio graph', error);
+      this.audioContext = null;
+      this.sourceNode = null;
+      this.currentMediaElement = null;
       throw error;
     }
   }
@@ -137,22 +164,45 @@ export class AudioGraphBuilder {
   }
 
   /**
-   * Cleans all resources.
+   * Cleans all resources synchronously (for internal use during re-initialization).
    */
-  public cleanup(): void {
+  private cleanupSync(): void {
     this.disconnect();
 
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
-
+    this.audioContext = null;
     this.sourceNode = null;
     this.gainNodeWrapper = null;
     this.compressorNodeWrapper = null;
     this.limiterNodeWrapper = null;
     this.analyserNodeWrapper = null;
+    this.currentMediaElement = null;
     this.currentMode = null;
+
+    this.logger.debug('Audio graph cleaned up (sync) - context will be GC\'d');
+  }
+
+  /**
+   * Cleans all resources.
+   */
+  public cleanup(): void {
+    this.disconnect();
+
+    const contextToClose = this.audioContext;
+
+    this.audioContext = null;
+    this.sourceNode = null;
+    this.gainNodeWrapper = null;
+    this.compressorNodeWrapper = null;
+    this.limiterNodeWrapper = null;
+    this.analyserNodeWrapper = null;
+    this.currentMediaElement = null;
+    this.currentMode = null;
+
+    if (contextToClose) {
+      contextToClose.close().catch((error) => {
+        this.logger.warn('Error closing AudioContext:', error);
+      });
+    }
 
     this.logger.info('Audio graph cleaned up');
   }
