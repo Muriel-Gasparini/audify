@@ -7,10 +7,6 @@ interface MinGainControlProps {
   disabled?: boolean;
 }
 
-/**
- * Componente: MinGainControl
- * Controle específico para Min Gain
- */
 export function MinGainControl({ value, onChange, disabled }: MinGainControlProps) {
   return (
     <Slider

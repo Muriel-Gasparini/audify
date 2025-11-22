@@ -7,10 +7,6 @@ interface MaxGainControlProps {
   disabled?: boolean;
 }
 
-/**
- * Componente: MaxGainControl
- * Controle específico para Max Gain
- */
 export function MaxGainControl({ value, onChange, disabled }: MaxGainControlProps) {
   return (
     <Slider

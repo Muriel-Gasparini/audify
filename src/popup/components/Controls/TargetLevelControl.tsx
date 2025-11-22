@@ -7,10 +7,6 @@ interface TargetLevelControlProps {
   disabled?: boolean;
 }
 
-/**
- * Componente: TargetLevelControl
- * Controle específico para Target Level
- */
 export function TargetLevelControl({ value, onChange, disabled }: TargetLevelControlProps) {
   return (
     <Slider

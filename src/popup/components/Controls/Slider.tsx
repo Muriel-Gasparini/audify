@@ -11,10 +11,6 @@ interface SliderProps {
   disabled?: boolean;
 }
 
-/**
- * Componente: Slider
- * Slider genérico com label e valor formatado
- */
 export function Slider({
   label,
   value,
