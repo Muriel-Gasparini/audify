@@ -6,7 +6,7 @@ import { PopupMessagingService, AudioState } from '../services/PopupMessagingSer
    */
 export function useAudioState(
   messagingService: PopupMessagingService,
-  isActive: boolean,
+  _isActive: boolean,
   pollingInterval: number = 500
 ) {
   const [state, setState] = useState<AudioState | null>(null);

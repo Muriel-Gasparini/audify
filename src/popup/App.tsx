@@ -1,4 +1,3 @@
-import React from 'react';
 import { useExtension } from './contexts/ExtensionContext';
 import { useAudioConfig } from './hooks/useAudioConfig';
 import { useAudioState } from './hooks/useAudioState';
