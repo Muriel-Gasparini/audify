@@ -18,7 +18,6 @@ export class MessageBus {
     }
 
     this.handlers.set(commandType, handler);
-    this.logger.debug(`Handler registered for ${commandType}`);
   }
 
   public async dispatch<TResponse>(command: Command): Promise<TResponse> {
@@ -31,9 +30,7 @@ export class MessageBus {
     }
 
     try {
-      this.logger.debug(`Dispatching command: ${command.type}`);
       const result = await handler.handle(command);
-      this.logger.debug(`Command handled successfully: ${command.type}`);
       return result;
     } catch (error) {
       this.logger.error(`Error handling command ${command.type}`, error);
@@ -47,6 +44,5 @@ export class MessageBus {
 
   public clearAll(): void {
     this.handlers.clear();
-    this.logger.debug('All handlers cleared');
   }
 }

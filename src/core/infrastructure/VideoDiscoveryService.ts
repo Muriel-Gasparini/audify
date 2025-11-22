@@ -57,11 +57,8 @@ export class VideoDiscoveryService {
           if (mutation.target instanceof HTMLVideoElement) {
             const newSrc = mutation.target.src || mutation.target.currentSrc;
             if (newSrc && newSrc.trim().length > 0) {
-              this.logger.debug('Video src attribute changed to non-empty value:', newSrc);
               shouldCheck = true;
               break;
-            } else {
-              this.logger.debug('Video src attribute cleared or empty - skipping discovery');
             }
           }
         }
@@ -151,15 +148,8 @@ export class VideoDiscoveryService {
    * @param force If true, notifies observers even if video already discovered
    * @param caller Caller identifier for debug
    */
-  private tryDiscoverVideosImmediate(force: boolean = false, caller: string = 'unknown'): void {
-    const timestamp = Date.now();
+  private tryDiscoverVideosImmediate(force: boolean = false, _caller: string = 'unknown'): void {
     const videos = this.domAdapter.findAllVideos();
-
-    this.logger.debug(`tryDiscoverVideos(force=${force}) called by: ${caller} at ${timestamp} - Found videos:`, videos.length);
-
-    if (videos.length === 0) {
-      this.logger.debug('No videos found in DOM');
-    }
 
     videos.forEach((video) => {
       const element = video.getElement();
@@ -168,37 +158,16 @@ export class VideoDiscoveryService {
 
       const hasValidSrc = videoSrc && videoSrc.trim().length > 0;
       if (!hasValidSrc) {
-        this.logger.debug('Skipping video without valid src');
         return;
       }
 
-      this.logger.debug('Processing video:', {
-        src: videoSrc,
-        isInIframe: video.isInIframe(),
-        alreadyDiscovered: alreadyDiscovered,
-        force: force,
-        isConnected: element.isConnected,
-        readyState: element.readyState,
-        paused: element.paused,
-        caller: caller,
-        timestamp: timestamp
-      });
-
       if (!alreadyDiscovered || force) {
-        if (force && alreadyDiscovered) {
-          this.logger.debug('FORCE MODE - Re-notifying observers despite alreadyDiscovered=true');
-        } else {
-          this.logger.debug('NEW VIDEO - notifying observers');
-        }
-
         if (!alreadyDiscovered) {
           this.discoveredVideos.add(element);
           this.hasFoundVideo = true;
         }
 
         this.notifyVideoDiscovered(video);
-      } else {
-        this.logger.debug('Video already discovered - skipping notification');
       }
     });
   }
@@ -211,13 +180,7 @@ export class VideoDiscoveryService {
       for (const mutation of mutations) {
         mutation.addedNodes.forEach((node) => {
           if (node instanceof HTMLIFrameElement) {
-            if (this.isSandboxedIframe(node)) {
-              this.logger.debug('Skipping sandboxed iframe in video discovery - cannot access content');
-              return;
-            }
-
-            if (this.isAboutBlank(node)) {
-              this.logger.debug('Skipping about:blank iframe in video discovery - no meaningful content');
+            if (this.isSandboxedIframe(node) || this.isAboutBlank(node)) {
               return;
             }
 
@@ -268,9 +231,7 @@ export class VideoDiscoveryService {
    * Força uma nova busca por videos.
    */
   public forceDiscovery(): void {
-    this.logger.debug('forceDiscovery() - Using FORCE MODE to bypass WeakSet check');
-    this.logger.info('Force discovery triggered - will re-notify observers regardless of WeakSet state');
-
+    this.logger.info('Force discovery triggered');
     this.tryDiscoverVideos(true, 'forceDiscovery');
   }
 

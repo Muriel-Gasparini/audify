@@ -35,7 +35,6 @@ export class ChromeStorageConfigRepository implements IConfigRepository {
     }
 
     if (this.cachedConfig && (Date.now() - this.cacheTimestamp < this.CACHE_TTL_MS)) {
-      this.logger.debug('Returning cached config (TTL not expired)');
       return this.cachedConfig;
     }
 
@@ -86,7 +85,6 @@ export class ChromeStorageConfigRepository implements IConfigRepository {
         validatedStored.isActive
       );
 
-      this.logger.debug('Config loaded from storage', validatedStored);
       this.updateCache(config);
       return config;
     } catch (error) {
@@ -109,7 +107,6 @@ export class ChromeStorageConfigRepository implements IConfigRepository {
     try {
       const storedConfig = config.toPrimitives();
       await chrome.storage.local.set({ [STORAGE_KEY]: storedConfig });
-      this.logger.debug('Config saved to storage', storedConfig);
       this.updateCache(config);
     } catch (error) {
       if (this.isContextInvalidatedError(error)) {

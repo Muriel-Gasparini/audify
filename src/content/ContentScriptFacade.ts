@@ -75,19 +75,10 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
         const config = await this.container.getConfigRepository().load();
         const isActive = service.isNormalizerActive();
 
-        logger.debug('Video health check:', {
-          hasVideo: hasVideo,
-          configIsActive: config.isActive,
-          normalizerIsActive: isActive,
-          consecutiveFailures: this.consecutiveHealthCheckFailures,
-          willTriggerRecovery: !hasVideo && config.isActive && !isActive && this.consecutiveHealthCheckFailures >= this.MAX_CONSECUTIVE_FAILURES - 1
-        });
-
         const isHealthy = hasVideo || !config.isActive || isActive;
 
         if (isHealthy) {
           if (this.consecutiveHealthCheckFailures > 0) {
-            logger.debug('Video health restored, resetting failure counter');
             this.consecutiveHealthCheckFailures = 0;
           }
         } else {
@@ -95,9 +86,7 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
           logger.warn(`Video health check failed (${this.consecutiveHealthCheckFailures}/${this.MAX_CONSECUTIVE_FAILURES})`);
 
           if (this.consecutiveHealthCheckFailures >= this.MAX_CONSECUTIVE_FAILURES) {
-            logger.error('Video health check: PERSISTENT FAILURE - forcing rediscovery');
-            logger.warn(`Video lost for ${this.MAX_CONSECUTIVE_FAILURES} consecutive checks - forcing rediscovery`);
-
+            logger.warn(`Video lost for ${this.MAX_CONSECUTIVE_FAILURES} checks - forcing rediscovery`);
             this.consecutiveHealthCheckFailures = 0;
 
             const videoDiscoveryService = this.container.getVideoDiscoveryService();
@@ -121,7 +110,6 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
    */
   public onVideoDiscovered(video: GenericVideo): void {
     if (this.isShuttingDown) {
-      this.container.getLogger().debug('Ignoring video discovery - shutting down');
       return;
     }
 
@@ -133,26 +121,7 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
     const isVideoInDOM = element.isConnected;
 
     if (alreadyInSet && isVideoInDOM) {
-      logger.debug('onVideoDiscovered - Video already in attachedVideos WeakSet AND in DOM, skipping');
       return;
-    }
-
-    if (alreadyInSet && !isVideoInDOM) {
-      logger.debug('onVideoDiscovered - Video was in WeakSet but NOT in DOM anymore (stale reference)');
-    }
-
-    const currentHasVideo = service.hasVideoAttached();
-    logger.debug('onVideoDiscovered - Video discovery triggered:', {
-      videoSrc: video.getSrc(),
-      isInIframe: video.isInIframe(),
-      alreadyInSet: alreadyInSet,
-      isVideoInDOM: isVideoInDOM,
-      currentHasVideo: currentHasVideo,
-      isReattachment: !alreadyInSet && currentHasVideo
-    });
-
-    if (currentHasVideo) {
-      logger.debug('Already have a video attached - this is likely a re-attachment after forceDiscovery()');
     }
 
     this.attachedVideos.add(element);
@@ -176,7 +145,6 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
       const activeIntegration = integrationRegistry.getActiveIntegration();
 
       if (activeIntegration && activeIntegration.onVideoDetected) {
-        logger.debug('Notifying site-specific integration about video');
         activeIntegration.onVideoDetected(video);
       }
     } catch (error) {
@@ -216,7 +184,6 @@ export class ContentScriptFacade implements IVideoDiscoveryObserver {
     if (this.videoMonitorInterval !== null) {
       clearInterval(this.videoMonitorInterval);
       this.videoMonitorInterval = null;
-      logger?.debug('Video health monitor stopped');
     }
 
     try {

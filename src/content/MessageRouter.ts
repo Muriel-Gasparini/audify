@@ -29,16 +29,9 @@ export class MessageRouter {
 
     this.logger.info(`MessageRouter.listen() called in ${frameInfo} - registering chrome.runtime.onMessage listener`);
 
-    this.listener = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
-      this.logger.info(`[${frameInfo}] Message received from ${sender.tab?.id || 'unknown'}:`, {
-        type: message?.type || 'UNKNOWN',
-        frameId: sender.frameId,
-        url: sender.url
-      });
-
+    this.listener = (message: any, _sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
       this.handleMessage(message)
         .then((response) => {
-          this.logger.info(`[${frameInfo}] Sending response for ${message?.type}:`, response);
           sendResponse(response);
         })
         .catch((error) => {
@@ -68,14 +61,7 @@ export class MessageRouter {
     }
   }
 
-  /**
-   * Processes uma mensagem.
-   */
   private async handleMessage(message: any): Promise<any> {
-    const startTime = performance.now();
-
-    this.logger.info(`[MessageRouter] Processing message type: ${message?.type}`);
-
     const command = this.messageToCommand(message);
 
     if (!command) {
@@ -83,26 +69,17 @@ export class MessageRouter {
       return { success: false, error: 'Unknown message type' };
     }
 
-    this.logger.info(`[MessageRouter] Dispatching command: ${command.type}`);
     const result = await this.messageBus.dispatch(command);
 
-    const elapsed = (performance.now() - startTime).toFixed(2);
-    this.logger.info(`[MessageRouter] Command ${command.type} handled successfully in ${elapsed}ms`);
-
-    let response: any;
     if (command.type === 'GET_CONFIG') {
-      response = { config: result };
+      return { config: result };
     } else if (command.type === 'GET_STATE') {
-      response = { state: result };
-      this.logger.debug('GET_STATE - Preparing response with state:', result);
+      return { state: result };
     } else if (command.type === 'GET_SITE_INFO') {
-      response = { siteInfo: result };
+      return { siteInfo: result };
     } else {
-      response = { success: true };
+      return { success: true };
     }
-
-    this.logger.info(`[MessageRouter] Response prepared for ${command.type}:`, response);
-    return response;
   }
 
   /**

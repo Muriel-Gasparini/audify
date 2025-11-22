@@ -122,9 +122,6 @@ export class CORSBypassService {
     }
   }
 
-  /**
-   * Processes individual video element.
-   */
   private processVideo(video: HTMLVideoElement): void {
     if (this.processedVideos.has(video)) {
       return;
@@ -178,7 +175,7 @@ export class CORSBypassService {
       }
 
       try {
-        const _ = doc.body;
+        void doc.body;
         return doc;
       } catch {
         return null;

@@ -26,94 +26,55 @@ export class AudioGraphBuilder {
 
   /**
    * Initializes o grafo audio com element video.
+   * AudioContext creation is deferred until resume() to comply with autoplay policy.
    */
   public initialize(mediaElement: HTMLVideoElement): void {
-    if (this.audioContext && this.currentMediaElement === mediaElement) {
-      this.logger.debug('Already initialized with same media element, skipping');
+    if (this.currentMediaElement === mediaElement) {
       return;
     }
 
-    if (this.audioContext && this.currentMediaElement) {
+    if (this.currentMediaElement) {
       const isCurrentVideoInDOM = this.currentMediaElement.isConnected;
       const currentSrc = this.currentMediaElement.currentSrc || this.currentMediaElement.src;
       const newSrc = mediaElement.currentSrc || mediaElement.src;
 
       if (!isCurrentVideoInDOM) {
-        this.logger.warn('Current video element no longer in DOM, cleaning up before re-initialization');
+        this.logger.warn('Current video no longer in DOM, cleaning up');
         this.cleanupSync();
       } else if (currentSrc && newSrc && currentSrc === newSrc) {
-        this.logger.debug('Different element but same video source, updating reference');
         this.currentMediaElement = mediaElement;
         return;
       } else {
-        this.logger.warn('Audio graph already initialized with different video, cleaning up first');
+        this.logger.warn('Switching to different video, cleaning up');
         this.cleanupSync();
       }
     }
 
-    try {
-      this.logger.debug('Starting initialization...', {
-        videoSrc: mediaElement.src || mediaElement.currentSrc,
-        videoConnected: mediaElement.isConnected,
-        hadPreviousContext: this.audioContext !== null
-      });
-
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      this.audioContext = new AudioContextClass();
-      this.logger.debug('AudioContext created, state:', this.audioContext.state);
-
-      this.sourceNode = this.audioContext.createMediaElementSource(mediaElement);
-      this.logger.debug('MediaElementSource created');
-
-      const gainNode = this.audioContext.createGain();
-      this.gainNodeWrapper = new GainNodeWrapper(gainNode);
-
-      const compressorNode = this.audioContext.createDynamicsCompressor();
-      this.compressorNodeWrapper = new CompressorNodeWrapper(compressorNode);
-
-      const limiterNode = this.audioContext.createDynamicsCompressor();
-      this.limiterNodeWrapper = new LimiterNodeWrapper(limiterNode);
-
-      const analyserNode = this.audioContext.createAnalyser();
-      this.analyserNodeWrapper = new AnalyserNodeWrapper(analyserNode);
-
-      this.currentMediaElement = mediaElement;
-
-      this.logger.debug('All nodes created successfully');
-      this.logger.info('Audio graph initialized successfully');
-    } catch (error) {
-      this.logger.error('CRITICAL ERROR during initialization:', error);
-      this.logger.error('Failed to initialize audio graph', error);
-      this.audioContext = null;
-      this.sourceNode = null;
-      this.currentMediaElement = null;
-      throw error;
-    }
+    this.currentMediaElement = mediaElement;
+    this.logger.info('Media element stored');
   }
 
   private currentMode: 'ACTIVE' | 'BYPASS' | null = null;
 
   /**
    * Connects nodes using specified strategy.
+   * If AudioContext not yet created, stores the mode for later connection.
    */
   public connect(isActive: boolean): void {
-    if (!this.isInitialized()) {
-      throw new Error('Audio graph not initialized');
-    }
-
     const newMode = isActive ? 'ACTIVE' : 'BYPASS';
 
+    if (!this.isInitialized()) {
+      this.currentMode = newMode;
+      return;
+    }
+
     if (this.currentMode === newMode) {
-      this.logger.debug(`Already in ${newMode} mode, skipping reconnection`);
-      this.logger.debug(`Already in ${newMode} mode, skipping reconnection`);
       return;
     }
 
     const strategy: IAudioProcessingStrategy = isActive
       ? this.activeStrategy
       : this.bypassStrategy;
-
-    this.logger.debug(`Connecting audio graph in ${newMode} mode...`);
 
     this.disconnect();
 
@@ -127,13 +88,6 @@ export class AudioGraphBuilder {
     );
 
     this.currentMode = newMode;
-
-    if (isActive) {
-      this.logger.debug('Audio path: video → gain → compressor → limiter → SPEAKERS (with processing)');
-    } else {
-      this.logger.debug('Audio path: video → SPEAKERS (direct, no processing)');
-    }
-
     this.logger.info(`Audio graph connected in ${newMode} mode`);
   }
 
@@ -155,9 +109,50 @@ export class AudioGraphBuilder {
 
   /**
    * Resume o AudioContext se estiver suspenso.
+   * Creates AudioContext on first call (lazy initialization after user gesture).
    */
   public async resume(): Promise<void> {
-    if (this.audioContext && this.audioContext.state === 'suspended') {
+    if (!this.currentMediaElement) {
+      this.logger.warn('Cannot resume: no media element attached');
+      return;
+    }
+
+    if (!this.audioContext) {
+      this.logger.info('Creating AudioContext');
+      try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        this.audioContext = new AudioContextClass();
+
+        this.sourceNode = this.audioContext.createMediaElementSource(this.currentMediaElement);
+
+        const gainNode = this.audioContext.createGain();
+        this.gainNodeWrapper = new GainNodeWrapper(gainNode);
+
+        const compressorNode = this.audioContext.createDynamicsCompressor();
+        this.compressorNodeWrapper = new CompressorNodeWrapper(compressorNode);
+
+        const limiterNode = this.audioContext.createDynamicsCompressor();
+        this.limiterNodeWrapper = new LimiterNodeWrapper(limiterNode);
+
+        const analyserNode = this.audioContext.createAnalyser();
+        this.analyserNodeWrapper = new AnalyserNodeWrapper(analyserNode);
+
+        this.logger.info('Audio graph initialized');
+
+        if (this.currentMode !== null) {
+          const isActive = this.currentMode === 'ACTIVE';
+          this.currentMode = null;
+          this.connect(isActive);
+        }
+      } catch (error) {
+        this.logger.error('Failed to create audio graph', error);
+        this.audioContext = null;
+        this.sourceNode = null;
+        throw error;
+      }
+    }
+
+    if (this.audioContext.state === 'suspended') {
       await this.audioContext.resume();
       this.logger.info('AudioContext resumed');
     }
@@ -177,8 +172,6 @@ export class AudioGraphBuilder {
     this.analyserNodeWrapper = null;
     this.currentMediaElement = null;
     this.currentMode = null;
-
-    this.logger.debug('Audio graph cleaned up (sync) - context will be GC\'d');
   }
 
   /**
@@ -229,12 +222,13 @@ export class AudioGraphBuilder {
   }
 
   public isInitialized(): boolean {
-    const result = this.audioContext !== null && this.sourceNode !== null;
-    this.logger.debug('isInitialized() called:', {
-      audioContext: this.audioContext ? 'EXISTS' : 'NULL',
-      sourceNode: this.sourceNode ? 'EXISTS' : 'NULL',
-      result: result
-    });
-    return result;
+    return this.audioContext !== null && this.sourceNode !== null;
+  }
+
+  /**
+   * Check if media element is attached (even if AudioContext not yet created).
+   */
+  public hasMediaElement(): boolean {
+    return this.currentMediaElement !== null;
   }
 }

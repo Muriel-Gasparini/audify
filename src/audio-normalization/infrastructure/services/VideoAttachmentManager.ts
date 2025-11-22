@@ -15,27 +15,18 @@ export class VideoAttachmentManager {
     video: HTMLVideoElement,
     isNormalizerActive: boolean,
     onSeeking: () => void,
-    onVideoRemoved: () => void
+    onVideoRemoved: () => void,
+    onPlay?: () => void,
+    onUserGesture?: () => void
   ): void {
     if (this.currentVideo === video && this.adapter.isInitialized()) {
       this.logger.info('Already attached to this video');
-      this.logger.debug('attachToVideo - Already attached, skipping');
       return;
     }
 
     this.logger.info('Attaching to video element');
-    this.logger.debug('attachToVideo - NEW ATTACHMENT:', {
-      videoSrc: video.src || video.currentSrc,
-      videoReadyState: video.readyState,
-      videoConnected: video.isConnected,
-      previousVideoExists: this.currentVideo !== null,
-      previousVideoConnected: this.currentVideo?.isConnected ?? false,
-      sameVideoElement: this.currentVideo === video,
-      adapterWasInitialized: this.adapter.isInitialized()
-    });
 
     if (this.currentVideo !== video) {
-      this.logger.debug('attachToVideo - Soft detaching from previous video (preserving AudioContext)');
       this.detachFromCurrentVideo();
     }
 
@@ -43,7 +34,6 @@ export class VideoAttachmentManager {
 
     try {
       this.adapter.attachToVideo(video);
-      this.logger.debug('attachToVideo - After attachment, adapter initialized:', this.adapter.isInitialized());
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const isSourceNodeConflict = errorMessage.includes('already has') ||
@@ -51,45 +41,29 @@ export class VideoAttachmentManager {
                                    errorMessage.includes('already being used');
 
       if (isSourceNodeConflict) {
-        this.logger.warn('MediaElementSource conflict detected - cleaning up and retrying once');
-        this.logger.warn('MediaElementSource conflict detected, attempting recovery with cleanup and retry');
+        this.logger.warn('MediaElementSource conflict - attempting recovery');
 
         try {
           this.adapter.cleanup();
-          this.logger.debug('Retrying attachment after cleanup...');
           this.adapter.attachToVideo(video);
-          this.logger.debug('RETRY SUCCESSFUL - adapter initialized:', this.adapter.isInitialized());
-          this.logger.info('Successfully attached after MediaElementSource conflict recovery');
+          this.logger.info('Successfully attached after conflict recovery');
         } catch (retryError) {
-          this.logger.error('RETRY FAILED after cleanup:', retryError);
-          this.logger.error('Failed to attach even after cleanup and retry', retryError);
+          this.logger.error('Failed to attach after cleanup', retryError);
           this.currentVideo = null;
           throw retryError;
         }
       } else {
-        this.logger.error('FAILED to attach adapter to video:', error);
         this.logger.error('Failed to attach adapter to video', error);
         this.currentVideo = null;
         throw error;
       }
     }
 
-    if (isNormalizerActive) {
-      this.logger.debug('Normalizer is ACTIVE - connecting in ACTIVE mode (full processing)');
-      this.adapter.setActive(true);
-    } else {
-      this.logger.debug('Normalizer is INACTIVE - connecting in BYPASS mode (direct audio)');
-      this.adapter.setActive(false);
-    }
-
-    this.adapter.resume();
-
-    this.lifecycleObserver.observeVideo(video, onSeeking, onVideoRemoved);
+    this.adapter.setActive(isNormalizerActive);
+    this.lifecycleObserver.observeVideo(video, onSeeking, onVideoRemoved, onPlay, onUserGesture);
   }
 
   public detachFromCurrentVideo(): void {
-    this.logger.debug('detachFromVideo() - soft detach (keeping AudioContext alive)');
-
     this.lifecycleObserver.removeListeners(this.currentVideo);
 
     if (this.adapter.isInitialized()) {
@@ -97,29 +71,19 @@ export class VideoAttachmentManager {
     }
 
     this.currentVideo = null;
-
-    this.logger.info('Soft detached from video (AudioContext preserved for re-attachment)');
+    this.logger.info('Soft detached from video');
   }
 
   public hasVideoAttached(): boolean {
     const hasVideo = this.currentVideo !== null;
-    const isAdapterInit = this.adapter.isInitialized();
+    const hasMediaElement = this.adapter.hasMediaElement();
     const isVideoInDOM = this.currentVideo?.isConnected ?? false;
-    const result = hasVideo && isAdapterInit && isVideoInDOM;
-
-    this.logger.debug('hasVideoAttached() check:', {
-      currentVideo: this.currentVideo ? 'EXISTS' : 'NULL',
-      videoInDOM: isVideoInDOM,
-      adapterInitialized: isAdapterInit,
-      result: result
-    });
 
     if (hasVideo && !isVideoInDOM) {
-      this.logger.warn('Video element detached from DOM (will be handled by caller)');
-      this.logger.warn('Video element no longer in DOM - reporting false to caller');
+      this.logger.warn('Video element detached from DOM');
     }
 
-    return result;
+    return hasVideo && hasMediaElement && isVideoInDOM;
   }
 
   public getCurrentVideo(): HTMLVideoElement | null {
@@ -127,14 +91,9 @@ export class VideoAttachmentManager {
   }
 
   public cleanup(): void {
-    this.logger.debug('cleanup() called - FULL TEARDOWN', {
-      hadVideo: this.currentVideo !== null,
-    });
-
     this.lifecycleObserver.removeListeners(this.currentVideo);
     this.lifecycleObserver.cleanup();
     this.currentVideo = null;
-
     this.logger.info('VideoAttachmentManager cleaned up');
   }
 }
