@@ -2,6 +2,7 @@
   "name": "audify",
   "version": "2.0.0",
   "description": "Audify - Smart audio normalization for any video website",
+  "license": "MIT",
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
