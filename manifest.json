@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Netfrix",
-  "version": "2.0.0",
-  "description": "Normaliza o áudio de vídeos em qualquer site e pula automaticamente aberturas no Netflix",
+  "name": "Audify",
+  "version": "2.1.0",
+  "description": "Smart audio normalization for video websites - Keeps your volume steady and comfortable",
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
