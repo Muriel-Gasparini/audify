@@ -1,7 +1,3 @@
-/**
-   * Popup to content script messaging service with retry logic.
-   */
-
 export interface AudioState {
   gain: number;
   volume: number;
@@ -23,8 +19,12 @@ export interface SiteInfo {
 
 export class PopupMessagingService {
   private static readonly MAX_RETRIES = 3;
-  private static readonly RETRY_DELAY_MS = 100;
+  private static readonly RETRY_DELAY_MS = 150;
+  private static readonly MESSAGE_TIMEOUT_MS = 2000;
 
+  /**
+   * @returns Whether the active tab is accessible by the extension
+   */
   public async canAccessTab(): Promise<boolean> {
     return new Promise((resolve) => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -42,49 +42,58 @@ export class PopupMessagingService {
   }
 
   private async sendMessageToActiveTab<T>(message: any, retryCount = 0): Promise<T> {
-    return new Promise((resolve, reject) => {
-      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-        const activeTab = tabs[0];
-        if (!activeTab?.id) {
-          reject(new Error('No active tab found'));
-          return;
-        }
+    return Promise.race([
+      new Promise<T>((resolve, reject) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+          const activeTab = tabs[0];
+          if (!activeTab?.id) {
+            reject(new Error('No active tab found'));
+            return;
+          }
 
-        chrome.tabs.sendMessage(
-          activeTab.id,
-          message,
-          { frameId: undefined },
-          async (response: T) => {
-            const lastError = chrome.runtime.lastError;
+          chrome.tabs.sendMessage(
+            activeTab.id,
+            message,
+            { frameId: undefined },
+            async (response: T) => {
+              const lastError = chrome.runtime.lastError;
 
-            if (lastError) {
-              const isConnectionError = lastError.message?.includes('Receiving end does not exist');
+              if (lastError) {
+                const isConnectionError = lastError.message?.includes('Receiving end does not exist');
 
-              if (isConnectionError && retryCount < PopupMessagingService.MAX_RETRIES) {
-                await this.delay(PopupMessagingService.RETRY_DELAY_MS * (retryCount + 1));
+                if (isConnectionError && retryCount < PopupMessagingService.MAX_RETRIES) {
+                  await this.delay(PopupMessagingService.RETRY_DELAY_MS * (retryCount + 1));
 
-                try {
-                  const result = await this.sendMessageToActiveTab<T>(message, retryCount + 1);
-                  resolve(result);
-                } catch (error) {
-                  reject(error);
+                  try {
+                    const result = await this.sendMessageToActiveTab<T>(message, retryCount + 1);
+                    resolve(result);
+                  } catch (error) {
+                    reject(error);
+                  }
+                } else {
+                  reject(new Error(lastError.message || 'Content script not available'));
                 }
               } else {
-                reject(new Error(lastError.message || 'Failed to communicate with content script'));
+                resolve(response);
               }
-            } else {
-              resolve(response);
             }
-          }
-        );
-      });
-    });
+          );
+        });
+      }),
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error('Content script timeout')), PopupMessagingService.MESSAGE_TIMEOUT_MS)
+      )
+    ]);
   }
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  /**
+   * @returns Current audio normalizer configuration
+   * @throws Error if content script is not available or timeout occurs
+   */
   public async getConfig(): Promise<AudioConfig> {
     const response = await this.sendMessageToActiveTab<{ config: AudioConfig }>({
       type: 'GET_CONFIG',
@@ -92,6 +101,10 @@ export class PopupMessagingService {
     return response.config;
   }
 
+  /**
+   * @param partialConfig Partial configuration to update
+   * @throws Error if content script is not available or timeout occurs
+   */
   public async updateConfig(partialConfig: Partial<AudioConfig>): Promise<void> {
     await this.sendMessageToActiveTab<{ success: boolean }>({
       type: 'UPDATE_CONFIG',
@@ -99,6 +112,10 @@ export class PopupMessagingService {
     });
   }
 
+  /**
+   * @returns Current audio normalizer state
+   * @throws Error if content script is not available or timeout occurs
+   */
   public async getState(): Promise<AudioState> {
     const response = await this.sendMessageToActiveTab<{ state: AudioState }>({
       type: 'GET_STATE',
@@ -106,12 +123,19 @@ export class PopupMessagingService {
     return response.state;
   }
 
+  /**
+   * @throws Error if content script is not available or timeout occurs
+   */
   public async toggleNormalizer(): Promise<void> {
     await this.sendMessageToActiveTab<{ success: boolean }>({
       type: 'TOGGLE_NORMALIZER',
     });
   }
 
+  /**
+   * @returns Site-specific integration information
+   * @throws Error if content script is not available or timeout occurs
+   */
   public async getSiteInfo(): Promise<SiteInfo> {
     const response = await this.sendMessageToActiveTab<{ siteInfo: SiteInfo }>({
       type: 'GET_SITE_INFO',
