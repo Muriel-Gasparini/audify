@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Audify Icon Generator</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .icon-preview {
+            display: flex;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .icon-item {
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .instructions {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Audify Icon Generator</h1>
+        <p>Click the buttons below to download the icon in different sizes:</p>
+
+        <div class="icon-preview">
+            <div class="icon-item">
+                <canvas id="icon16" width="16" height="16"></canvas>
+                <div><button onclick="downloadIcon(16)">Download 16x16</button></div>
+            </div>
+            <div class="icon-item">
+                <canvas id="icon48" width="48" height="48"></canvas>
+                <div><button onclick="downloadIcon(48)">Download 48x48</button></div>
+            </div>
+            <div class="icon-item">
+                <canvas id="icon128" width="128" height="128"></canvas>
+                <div><button onclick="downloadIcon(128)">Download 128x128</button></div>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <strong>Instructions:</strong><br>
+            1. Click each download button<br>
+            2. Save the files as icon16.png, icon48.png, and icon128.png<br>
+            3. Place them in the /icons/ directory
+        </div>
+    </div>
+
+    <script>
+        function drawIcon(canvas) {
+            const ctx = canvas.getContext('2d');
+            const size = canvas.width;
+            const scale = size / 128;
+
+            ctx.clearRect(0, 0, size, size);
+
+            const cornerRadius = 24 * scale;
+            ctx.fillStyle = '#2a2a2a';
+            ctx.beginPath();
+            ctx.roundRect(0, 0, size, size, cornerRadius);
+            ctx.fill();
+
+            ctx.fillStyle = 'white';
+            const barWidth = 8 * scale;
+            const barGap = 16 * scale;
+            const centerY = size / 2;
+            const startX = 28 * scale;
+
+            const bars = [
+                { height: 24 * scale, opacity: 0.5 },
+                { height: 48 * scale, opacity: 0.7 },
+                { height: 64 * scale, opacity: 1.0 },
+                { height: 40 * scale, opacity: 0.7 },
+                { height: 16 * scale, opacity: 0.5 }
+            ];
+
+            bars.forEach((bar, index) => {
+                ctx.globalAlpha = bar.opacity;
+                const x = startX + index * barGap;
+                const y = centerY - bar.height / 2;
+                const radius = 4 * scale;
+
+                ctx.beginPath();
+                ctx.roundRect(x, y, barWidth, bar.height, radius);
+                ctx.fill();
+            });
+
+            ctx.globalAlpha = 1.0;
+        }
+
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`icon${size}`);
+            const link = document.createElement('a');
+            link.download = `icon${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        [16, 48, 128].forEach(size => {
+            const canvas = document.getElementById(`icon${size}`);
+            drawIcon(canvas);
+        });
+    </script>
+</body>
+</html>
