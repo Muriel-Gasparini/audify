@@ -53,6 +53,18 @@ export class VideoDiscoveryService {
           shouldCheck = true;
           break;
         }
+        if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+          if (mutation.target instanceof HTMLVideoElement) {
+            const newSrc = mutation.target.src || mutation.target.currentSrc;
+            if (newSrc && newSrc.trim().length > 0) {
+              this.logger.debug('Video src attribute changed to non-empty value:', newSrc);
+              shouldCheck = true;
+              break;
+            } else {
+              this.logger.debug('Video src attribute cleared or empty - skipping discovery');
+            }
+          }
+        }
       }
 
       if (shouldCheck) {
@@ -63,6 +75,8 @@ export class VideoDiscoveryService {
     this.observer.observe(document.documentElement, {
       childList: true,
       subtree: true,
+      attributes: true,
+      attributeFilter: ['src'],
     });
 
     this.monitorIframes();
@@ -149,10 +163,17 @@ export class VideoDiscoveryService {
 
     videos.forEach((video) => {
       const element = video.getElement();
+      const videoSrc = video.getSrc();
       const alreadyDiscovered = this.discoveredVideos.has(element);
 
+      const hasValidSrc = videoSrc && videoSrc.trim().length > 0;
+      if (!hasValidSrc) {
+        this.logger.debug('Skipping video without valid src');
+        return;
+      }
+
       this.logger.debug('Processing video:', {
-        src: video.getSrc(),
+        src: videoSrc,
         isInIframe: video.isInIframe(),
         alreadyDiscovered: alreadyDiscovered,
         force: force,
