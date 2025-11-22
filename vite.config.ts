@@ -1,23 +1,20 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import checker from 'vite-plugin-checker';
 import { resolve } from 'path';
 import { copyFileSync, mkdirSync } from 'fs';
 
-// Plugin para copiar manifest.json e ícones para dist/
 function copyStaticAssets() {
   return {
     name: 'copy-static-assets',
     writeBundle() {
-      // Cria diretório de ícones se não existir
       mkdirSync(resolve(__dirname, 'dist/icons'), { recursive: true });
 
-      // Copia manifest.json
       copyFileSync(
         resolve(__dirname, 'manifest.json'),
         resolve(__dirname, 'dist/manifest.json')
       );
 
-      // Copia ícones
       const icons = ['icon16.png', 'icon48.png', 'icon128.png'];
       icons.forEach(icon => {
         copyFileSync(
@@ -26,18 +23,24 @@ function copyStaticAssets() {
         );
       });
 
-      console.log('✓ Manifest e ícones copiados para dist/');
+      console.log('✓ Manifest and icons copied to dist/');
     }
   };
 }
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), copyStaticAssets()],
-  base: './', // Usa paths relativos para extensões Chrome
+  plugins: [
+    react(),
+    checker({
+      typescript: true,
+      enableBuild: true,
+    }),
+    copyStaticAssets()
+  ],
+  base: './',
   build: {
     outDir: 'dist',
-    emptyOutDir: true, // Agora pode limpar dist pois vamos copiar tudo
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'popup.html'),
@@ -45,16 +48,13 @@ export default defineConfig({
       },
       output: {
         entryFileNames: (chunkInfo) => {
-          // content/index.ts -> content.js
           if (chunkInfo.name === 'content') {
             return 'content.js';
           }
-          // Para outros entry points, usa o nome padrão
           return '[name].js';
         },
         chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
-          // CSS vai para assets/
           if (assetInfo.name && assetInfo.name.endsWith('.css')) {
             return 'assets/[name][extname]';
           }
@@ -66,7 +66,7 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: false, // Mantém console.log para debug
+        drop_console: false,
       },
     },
   },
