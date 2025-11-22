@@ -20,7 +20,14 @@ export function useAudioConfig(messagingService: PopupMessagingService) {
       const loadedConfig = await messagingService.getConfig();
       setConfig(loadedConfig);
     } catch (err) {
-      setError('Erro ao carregar configuração');
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
+      setConfig({
+        targetLevel: 0.1,
+        maxGain: 8.0,
+        minGain: 0.1,
+        isActive: false,
+      });
     } finally {
       setLoading(false);
     }

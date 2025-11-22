@@ -31,6 +31,15 @@ export function useAudioState(
       const loadedState = await messagingService.getState();
       setState(loadedState);
     } catch (err) {
+      console.error('[Audify] Failed to load audio state:', err);
+      if (state === null) {
+        setState({
+          gain: 1.0,
+          volume: 1.0,
+          isActive: false,
+          hasVideo: false,
+        });
+      }
     }
   };
 

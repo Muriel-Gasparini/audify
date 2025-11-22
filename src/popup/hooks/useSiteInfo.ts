@@ -8,6 +8,7 @@ export function useSiteInfo(messagingService: PopupMessagingService) {
   const [siteInfo, setSiteInfo] = useState<SiteInfo | null>(null);
   const [canAccessTab, setCanAccessTab] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [needsReload, setNeedsReload] = useState(false);
 
   useEffect(() => {
     loadSiteInfo();
@@ -16,6 +17,7 @@ export function useSiteInfo(messagingService: PopupMessagingService) {
   const loadSiteInfo = async () => {
     try {
       setLoading(true);
+      setNeedsReload(false);
 
       const hasAccess = await messagingService.canAccessTab();
       setCanAccessTab(hasAccess);
@@ -28,6 +30,10 @@ export function useSiteInfo(messagingService: PopupMessagingService) {
       const info = await messagingService.getSiteInfo();
       setSiteInfo(info);
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('Content script')) {
+        setNeedsReload(true);
+      }
       setSiteInfo(null);
       setCanAccessTab(false);
     } finally {
@@ -39,6 +45,7 @@ export function useSiteInfo(messagingService: PopupMessagingService) {
     siteInfo,
     canAccessTab,
     loading,
+    needsReload,
     reloadSiteInfo: loadSiteInfo,
   };
 }
