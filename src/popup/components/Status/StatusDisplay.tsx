@@ -6,21 +6,17 @@ interface StatusDisplayProps {
   gain: number;
 }
 
-/**
- * Componente: StatusDisplay
- * Exibe status atual do normalizador
- */
 export function StatusDisplay({ isActive, hasVideo, gain }: StatusDisplayProps) {
   const getStatusText = () => {
     if (!hasVideo) {
-      return 'Buscando video...';
+      return 'Looking for video...';
     }
 
     if (isActive) {
-      return 'Ativo';
+      return 'Active';
     }
 
-    return 'Inativo';
+    return 'Inactive';
   };
 
   const getGainText = () => {

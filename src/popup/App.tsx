@@ -11,35 +11,50 @@ import { MinGainControl } from './components/Controls/MinGainControl';
 import { ToggleButton } from './components/Actions/ToggleButton';
 import { Footer } from './components/Footer/Footer';
 
-/**
- * Componente: App
- * Componente raiz da aplicação
- */
 export function App() {
   const { messagingService } = useExtension();
-
-  // Hooks
-  const { siteInfo, canAccessTab, loading: siteInfoLoading } = useSiteInfo(messagingService);
+  const { siteInfo, canAccessTab, loading: siteInfoLoading, needsReload } = useSiteInfo(messagingService);
   const { config, loading: configLoading, updateTargetLevel, updateMaxGain, updateMinGain } =
     useAudioConfig(messagingService);
   const { state } = useAudioState(messagingService, config?.isActive ?? false);
 
-  // Loading state
   if (siteInfoLoading || configLoading || !config) {
     return (
       <div className="container">
         <Header />
-        <div className="loading">Carregando...</div>
+        <div className="loading">Loading...</div>
       </div>
     );
   }
 
-  // Se não pode acessar a aba (chrome://, edge://, etc.)
+  if (needsReload) {
+    const handleReload = () => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+          chrome.tabs.reload(tabs[0].id);
+          window.close();
+        }
+      });
+    };
+
+    return (
+      <div className="container">
+        <Header />
+        <div className="reload-required">
+          <p className="reload-message">Reload the page to activate the extension</p>
+          <button className="reload-button" onClick={handleReload}>
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!canAccessTab) {
     return (
       <div className="container">
         <Header />
-        <div className="error">Esta extensão não funciona em páginas do navegador.</div>
+        <div className="error">This extension does not work on browser pages.</div>
       </div>
     );
   }
@@ -51,7 +66,6 @@ export function App() {
   const handleToggleClick = async () => {
     if (hasVideo) {
       await messagingService.toggleNormalizer();
-      // Força reload da página para atualizar UI
       window.location.reload();
     }
   };

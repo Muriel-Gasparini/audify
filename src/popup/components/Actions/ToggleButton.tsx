@@ -6,17 +6,13 @@ interface ToggleButtonProps {
   onClick: () => void;
 }
 
-/**
- * Componente: ToggleButton
- * Botão principal de ação (toggle normalizer)
- */
 export function ToggleButton({ hasVideo, isActive, onClick }: ToggleButtonProps) {
   const getButtonText = () => {
     if (!hasVideo) {
-      return 'Buscando video...';
+      return 'Looking for video...';
     }
 
-    return isActive ? 'Desativar' : 'Ativar';
+    return isActive ? 'Deactivate' : 'Activate';
   };
 
   const getButtonClass = () => {
