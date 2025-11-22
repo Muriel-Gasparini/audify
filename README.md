@@ -70,9 +70,11 @@ When the user seeks within the video, gain is reset to a mid-point to handle pot
 
 ### Production Release (Recommended)
 
-[![Latest Release](https://img.shields.io/github/v/release/Muriel-Gasparini/audify?label=Download&style=for-the-badge)](https://github.com/Muriel-Gasparini/audify/releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/Muriel-Gasparini/audify?style=for-the-badge&logo=github)](https://github.com/Muriel-Gasparini/audify/releases/latest)
 
-1. Download the latest `audify-vX.X.X.zip` from the [releases page](https://github.com/Muriel-Gasparini/audify/releases/latest)
+**[→ Download Latest Release](https://github.com/Muriel-Gasparini/audify/releases/latest)**
+
+1. Click the download link above and download the `audify-vX.X.X.zip` file from the latest release
 2. Extract the ZIP file to a permanent location on your computer
 3. Open your browser and navigate to the extensions page:
    - **Chrome**: `chrome://extensions/`
