@@ -93,6 +93,8 @@ Edge:
 
 The extension activates automatically when video elements are detected. Click the extension icon to access controls:
 
+![Audify Extension Interface](./examples/audify.png)
+
 **Toggle**: Enable or disable normalization
 **Target Level**: Desired RMS volume (0.02 to 0.3)
 **Max Gain**: Maximum amplification limit (1.0 to 8.0)
